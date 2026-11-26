@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"fotonaik/internal/core"
+	"milesshoot/internal/core"
 )
 
 const frameSize = 1440
@@ -169,12 +169,17 @@ func joinComma(f []string) string {
 }
 
 func grabFrame(file string, t float64, vf string, noAutoRotate bool) ([]byte, error) {
+	return grabFrameQ(file, t, vf, noAutoRotate, 3)
+}
+
+// grabFrameQ: seperti grabFrame dengan kualitas JPEG (-q:v; makin kecil makin bagus) yang bisa dipilih.
+func grabFrameQ(file string, t float64, vf string, noAutoRotate bool, q int) ([]byte, error) {
 	args := []string{"-hide_banner", "-loglevel", "error"}
 	if noAutoRotate {
 		args = append(args, "-noautorotate")
 	}
 	args = append(args, "-ss", strconv.FormatFloat(t, 'f', 3, 64), "-i", file,
-		"-frames:v", "1", "-vf", vf, "-q:v", "3", "-f", "image2", "-c:v", "mjpeg", "pipe:1")
+		"-frames:v", "1", "-vf", vf, "-q:v", strconv.Itoa(q), "-f", "image2", "-c:v", "mjpeg", "pipe:1")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, findFfmpeg(), args...)
@@ -182,6 +187,9 @@ func grabFrame(file string, t float64, vf string, noAutoRotate bool) ([]byte, er
 	cmd.Stdout = &out
 	cmd.Stderr = &errb
 	if err := cmd.Run(); err != nil || out.Len() < 100 {
+		if err != nil {
+			Logf("warn", fmt.Sprintf("ffmpeg ambil frame gagal (detik %.2f, filter %q): %v — %s", t, vf, err, lastLines(errb.String(), 4)))
+		}
 		return nil, fmt.Errorf("gagal mengambil frame: %s", lastLine(errb.String()))
 	}
 	return out.Bytes(), nil

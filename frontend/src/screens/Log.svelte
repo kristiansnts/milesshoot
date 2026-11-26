@@ -7,7 +7,7 @@
   let level = "all";
   let q = "";
   let file = "";
-  let copied = false;
+  let copied = false, reportMsg = "";
 
   $: cfg = $config;
   $: debugOn = cfg && cfg.debug;
@@ -45,6 +45,20 @@
     } catch {}
   }
 
+  async function copyReport() {
+    reportMsg = "";
+    try {
+      await navigator.clipboard.writeText(await api.diagReport());
+      reportMsg = "Laporan tersalin — tempel ke chat bantuan.";
+    } catch { reportMsg = "Gagal menyalin. Pakai \"Simpan laporan\"."; }
+    setTimeout(() => (reportMsg = ""), 4000);
+  }
+  async function saveReport() {
+    reportMsg = "";
+    try { const p = await api.diagSave(); reportMsg = p ? "Tersimpan: " + p : ""; }
+    catch (e) { reportMsg = "Gagal menyimpan: " + e; }
+  }
+
   const fmt = (t) => new Date(t).toLocaleTimeString("id-ID", { hour12: false });
   const levels = [
     ["all", "Semua"],
@@ -74,6 +88,16 @@
         <span>catat tiap perintah &amp; balasan FTP dari kamera — nyalakan sebelum menguji, matikan setelah selesai</span>
       </div>
       <button class="sw" class:on={debugOn} on:click={toggleDebug} aria-label="Mode debug"><i></i></button>
+    </div>
+    <div class="row">
+      <div class="oi">
+        <b>Laporan masalah</b>
+        <span>{reportMsg || "Ada kendala? Salin laporan lalu kirim — isinya versi, setelan, status antrean, foto bermasalah, dan log terbaru (tanpa password)."}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn p sm" on:click={copyReport}>Salin laporan</button>
+        {#if isDesktop()}<button class="btn s sm" on:click={saveReport}>Simpan file</button>{/if}
+      </div>
     </div>
     {#if file}
       <div class="row">
@@ -116,7 +140,7 @@
     <div class="muted" style="font-size:12.5px;line-height:1.6">
       <b>Cara menguji kamera:</b> nyalakan <b>Mode debug</b> → di kamera isi alamat/port/user/password dari
       Pengaturan → Sumber → Kamera Wi-Fi → coba kirim satu foto. Setiap langkah akan tercatat di sini
-      (<code>-&gt;</code> perintah dari kamera, <code>&lt;-</code> balasan dari fotonaik). Password tidak ikut dicatat.
+      (<code>-&gt;</code> perintah dari kamera, <code>&lt;-</code> balasan dari milesshoot). Password tidak ikut dicatat.
     </div>
   </div>
 </div>

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 )
 
 // Ranking: peringkat akun berdasarkan jumlah daun di sebuah FotoTree. Murni informasi —

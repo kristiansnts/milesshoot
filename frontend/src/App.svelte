@@ -3,10 +3,10 @@
   import { initStores, status, config, hires } from "./lib/stores";
   import Unggah from "./screens/Unggah.svelte";
   import Pengaturan from "./screens/Pengaturan.svelte";
-  import Lisensi from "./screens/Lisensi.svelte";
   import Placeholder from "./screens/Placeholder.svelte";
   import Ranking from "./screens/Ranking.svelte";
   import Hires from "./screens/Hires.svelte";
+  import VideoFoto from "./screens/VideoFoto.svelte";
   import Log from "./screens/Log.svelte";
 
   let screen = "unggah";
@@ -23,10 +23,10 @@
   const nav = [
     { id: "unggah", label: "Unggah", grp: "Menu utama", icon: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/>' },
     { id: "hires", label: "Hi-res", icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15l4-4 4 4 3-3 7 7"/>' },
+    { id: "videofoto", label: "Video → Foto", icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M3 15h18M8 5v14M16 5v14"/>' },
     { id: "ranking", label: "Ranking", icon: '<path d="M6 20V10M12 20V4M18 20v-7"/>' },
     { id: "pengaturan", label: "Pengaturan", grp: "Atur", icon: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 00-1.7-1L16.5 2h-4l-.4 2.6a7 7 0 00-1.7 1l-2.3-1-2 3.4L5.1 11a7 7 0 000 2l-2 1.5 2 3.4 2.3-1a7 7 0 001.7 1l.4 2.6h4l.4-2.6a7 7 0 001.7-1l2.3 1 2-3.4-2-1.5a7 7 0 00.1-1z"/>' },
     { id: "log", label: "Log", icon: '<path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>' },
-    { id: "lisensi", label: "Lisensi", bdg: "Gratis", icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h5M7 14h8"/>' },
   ];
 
   $: st = $status;
@@ -41,7 +41,7 @@
 
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><div class="mark"></div><b>fotonaik</b></div>
+    <div class="brand"><div class="mark">W</div><b>milesshoot</b></div>
     {#each nav as n}
       {#if n.grp}<div class="grp">{n.grp}</div>{/if}
       <button class="nav" class:on={screen === n.id} on:click={() => (screen = n.id)}>
@@ -70,9 +70,9 @@
     <div class="work">
       {#if screen === "unggah"}<Unggah on:goto={(e) => { screen = e.detail.screen; settingsTab = e.detail.tab; }} />
       {:else if screen === "pengaturan"}<Pengaturan bind:tab={settingsTab} />
-      {:else if screen === "lisensi"}<Lisensi />
       {:else if screen === "ranking"}<Ranking />
       {:else if screen === "hires"}<Hires />
+      {:else if screen === "videofoto"}<VideoFoto />
       {:else if screen === "log"}<Log />
       {/if}
     </div>

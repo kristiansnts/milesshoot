@@ -182,6 +182,30 @@ export function UseCardDrive(arg1) {
   return window['go']['main']['App']['UseCardDrive'](arg1);
 }
 
+export function VideoPhotoCancel() {
+  return window['go']['main']['App']['VideoPhotoCancel']();
+}
+
+export function VideoPhotoPickFiles() {
+  return window['go']['main']['App']['VideoPhotoPickFiles']();
+}
+
+export function VideoPhotoPickFolder() {
+  return window['go']['main']['App']['VideoPhotoPickFolder']();
+}
+
+export function VideoPhotoReveal(arg1) {
+  return window['go']['main']['App']['VideoPhotoReveal'](arg1);
+}
+
+export function VideoPhotoStart(arg1, arg2) {
+  return window['go']['main']['App']['VideoPhotoStart'](arg1, arg2);
+}
+
+export function VideoPhotoState() {
+  return window['go']['main']['App']['VideoPhotoState']();
+}
+
 export function WatermarkPickLogo() {
   return window['go']['main']['App']['WatermarkPickLogo']();
 }

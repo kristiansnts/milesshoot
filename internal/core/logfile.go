@@ -53,7 +53,7 @@ func (l *FileLogger) Log(level, msg string) {
 		if l.f != nil {
 			_ = l.f.Close()
 		}
-		f, err := os.OpenFile(filepath.Join(l.dir, "fotonaik-"+day+".log"),
+		f, err := os.OpenFile(filepath.Join(l.dir, "milesshoot-"+day+".log"),
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return
@@ -82,7 +82,7 @@ func (l *FileLogger) Dir() string { return l.dir }
 
 // File hari ini — untuk ditunjukkan di UI.
 func (l *FileLogger) Today() string {
-	return filepath.Join(l.dir, "fotonaik-"+time.Now().Format("2006-01-02")+".log")
+	return filepath.Join(l.dir, "milesshoot-"+time.Now().Format("2006-01-02")+".log")
 }
 
 // Simpan 14 hari terakhir saja.
@@ -93,7 +93,7 @@ func (l *FileLogger) cleanOld() {
 	}
 	cutoff := time.Now().AddDate(0, 0, -14)
 	for _, e := range ents {
-		if !strings.HasPrefix(e.Name(), "fotonaik-") || !strings.HasSuffix(e.Name(), ".log") {
+		if !strings.HasPrefix(e.Name(), "milesshoot-") || !strings.HasSuffix(e.Name(), ".log") {
 			continue
 		}
 		if fi, err := e.Info(); err == nil && fi.ModTime().Before(cutoff) {

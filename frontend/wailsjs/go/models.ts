@@ -939,6 +939,82 @@ export namespace main {
 	        this.pass = source["pass"];
 	    }
 	}
+	export class VFItem {
+	    video: string;
+	    dir: string;
+	    files: string[];
+	    enlarged: number;
+	    similar: number;
+	    asked: number;
+	    skipped: boolean;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new VFItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.video = source["video"];
+	        this.dir = source["dir"];
+	        this.files = source["files"];
+	        this.enlarged = source["enlarged"];
+	        this.similar = source["similar"];
+	        this.asked = source["asked"];
+	        this.skipped = source["skipped"];
+	        this.error = source["error"];
+	    }
+	}
+	export class VFState {
+	    running: boolean;
+	    cancelling: boolean;
+	    total: number;
+	    index: number;
+	    current: string;
+	    stage: string;
+	    items: VFItem[];
+	    photos: number;
+	    queued: number;
+	    paused: boolean;
+	    available: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new VFState(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.cancelling = source["cancelling"];
+	        this.total = source["total"];
+	        this.index = source["index"];
+	        this.current = source["current"];
+	        this.stage = source["stage"];
+	        this.items = this.convertValues(source["items"], VFItem);
+	        this.photos = source["photos"];
+	        this.queued = source["queued"];
+	        this.paused = source["paused"];
+	        this.available = source["available"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 

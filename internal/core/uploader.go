@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 )
 
 // UploadError membawa penanda yang menentukan perlakuan antrean (port dari flag di queue.js/fotoyu.js).
@@ -140,7 +140,7 @@ func (FotoyuUploader) ID() string { return "fotoyu" }
 
 func (u *FotoyuUploader) Test(cfg Settings) (bool, string) {
 	if !u.client.IsLoggedIn() {
-		return false, "Belum ada akun FotoYu yang aktif. Masuk dulu di menu Lisensi/Atur."
+		return false, "Belum ada akun FotoYu yang aktif. Masuk dulu di Pengaturan > Akun."
 	}
 	if cfg.Event.Tree == nil {
 		return false, "Pilih FotoTree (lokasi) dulu."
@@ -150,7 +150,7 @@ func (u *FotoyuUploader) Test(cfg Settings) (bool, string) {
 
 func (u *FotoyuUploader) checkReady(cfg Settings, videoPrice bool) (*fotoyu.Tree, int, error) {
 	if !u.client.IsLoggedIn() {
-		return nil, 0, &UploadError{Msg: "Belum masuk akun FotoYu — masuk di menu Lisensi", Pause: true, Account: true}
+		return nil, 0, &UploadError{Msg: "Belum masuk akun FotoYu — masuk di Pengaturan > Akun", Pause: true, Account: true}
 	}
 	if cfg.Event.Tree == nil {
 		return nil, 0, &UploadError{Msg: "FotoTree belum dipilih", Pause: true}

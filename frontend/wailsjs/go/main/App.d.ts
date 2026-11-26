@@ -95,6 +95,18 @@ export function UsbCamToggle(arg1:boolean):Promise<usbcam.State>;
 
 export function UseCardDrive(arg1:string):Promise<core.Settings>;
 
+export function VideoPhotoCancel():Promise<void>;
+
+export function VideoPhotoPickFiles():Promise<Array<string>>;
+
+export function VideoPhotoPickFolder():Promise<Array<string>>;
+
+export function VideoPhotoReveal(arg1:string):Promise<void>;
+
+export function VideoPhotoStart(arg1:Array<string>,arg2:string):Promise<main.VFState>;
+
+export function VideoPhotoState():Promise<main.VFState>;
+
 export function WatermarkPickLogo():Promise<core.Settings>;
 
 export function WatermarkPreview(arg1:string):Promise<Array<number>>;

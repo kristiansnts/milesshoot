@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"fotonaik/internal/core"
-	"fotonaik/internal/fotoyu"
-	"fotonaik/internal/ftp"
-	"fotonaik/internal/usbcam"
+	"milesshoot/internal/core"
+	"milesshoot/internal/fotoyu"
+	"milesshoot/internal/ftp"
+	"milesshoot/internal/usbcam"
+	"milesshoot/internal/video"
 
 	wrt "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -26,6 +27,7 @@ type App struct {
 	logs   *core.FileLogger
 	cam    *usbcam.Cam
 	drives *usbcam.DriveWatcher
+	vf     vfJob // pekerjaan Video → Foto (vidfoto_app.go)
 }
 
 func NewApp(eng *core.Engine, phonePort int, ftpSrv *ftp.Server, logs *core.FileLogger,
@@ -36,6 +38,8 @@ func NewApp(eng *core.Engine, phonePort int, ftpSrv *ftp.Server, logs *core.File
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.eng.AddEmitter(&wailsEmitter{ctx: ctx})
+	video.Logf = a.eng.Log
+	a.logStartup()
 	a.eng.Start()
 	if a.ftp != nil {
 		a.ftp.Start()

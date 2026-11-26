@@ -418,6 +418,9 @@
       <button class:on={par.mode === "odd"} on:click={() => patch({ parity: { mode: "odd" } })}>Ganjil</button>
       <button class:on={par.mode === "even"} on:click={() => patch({ parity: { mode: "even" } })}>Genap</button>
     </div>
+    {#if par.mode !== "all"}
+      <div class="muted" style="font-size:11.5px;padding:0 4px">Hanya file bernomor {par.mode === "odd" ? "ganjil" : "genap"} yang diunggah — berhenti sendiri setelah antreannya habis.</div>
+    {/if}
   </div>
 </div>
 
@@ -607,14 +610,19 @@
         <div class="oi"><b>Kompresi</b><span>sisi terpanjang sebelum diunggah</span></div>
         <button class="btn s sm" on:click={() => (showKompresiModal = true)}>Ubah</button>
       </div>
+      <!-- Watermark & LUT disembunyikan; barisnya hanya muncul bila masih aktif, supaya tetap bisa dimatikan. -->
+      {#if wm.enabled}
       <div class="row">
         <div class="oi"><b>Watermark</b><span>ditempel ke foto sebelum diunggah</span></div>
         <button class="btn s sm" on:click={openWatermarkModal}>Ubah</button>
       </div>
+      {/if}
+      {#if lutCfg.photo || lutCfg.video}
       <div class="row">
         <div class="oi"><b>LUT</b><span>warna khas untuk hasil unggahan</span></div>
         <button class="btn s sm" on:click={() => (showLutModal = true)}>Ubah</button>
       </div>
+      {/if}
     </div>
 
     {#if c.failed > 0}

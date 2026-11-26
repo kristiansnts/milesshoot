@@ -36,7 +36,7 @@ func TestWatermarkNormalizeDisablesWhenEmpty(t *testing.T) {
 	}
 	// Dengan isi, Enabled harus tetap jalan + nilai aneh dinormalisasi ke batas aman.
 	got := cfg.Set(func(s *Settings) {
-		s.Watermark = Watermark{Enabled: true, Type: "aneh", Text: "fotonaik", Pos: "tengah-bawah", Size: 999, Opacity: -5}
+		s.Watermark = Watermark{Enabled: true, Type: "aneh", Text: "milesshoot", Pos: "tengah-bawah", Size: 999, Opacity: -5}
 	})
 	if !got.Watermark.Enabled {
 		t.Fatal("watermark dengan teks terisi seharusnya tetap Enabled")
@@ -58,7 +58,7 @@ func TestWatermarkNormalizeDisablesWhenEmpty(t *testing.T) {
 // Teks digambar di pojok yang benar, dan piksel di luar area watermark tidak tersentuh.
 func TestWatermarkTextPosition(t *testing.T) {
 	img := blackCanvas(400, 300)
-	wm := Watermark{Enabled: true, Type: "text", Text: "fotonaik", Pos: "br", Size: 20, Opacity: 100}
+	wm := Watermark{Enabled: true, Type: "text", Text: "milesshoot", Pos: "br", Size: 20, Opacity: 100}
 	if !applyWatermark(img, wm) {
 		t.Fatal("applyWatermark mengembalikan false, mau true")
 	}

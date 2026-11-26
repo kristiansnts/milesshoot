@@ -580,7 +580,7 @@ func presetToCube(p presetData, title string, size int) string {
 	n := size - 1
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "TITLE \"%s\"\n", strings.ReplaceAll(title, `"`, "'"))
-	sb.WriteString("# Dibuat fotonaik dari preset Lightroom\n")
+	sb.WriteString("# Dibuat milesshoot dari preset Lightroom\n")
 	fmt.Fprintf(&sb, "LUT_3D_SIZE %d\n", size)
 	for bI := 0; bI < size; bI++ {
 		for gI := 0; gI < size; gI++ {

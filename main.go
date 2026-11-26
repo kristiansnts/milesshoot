@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"fotonaik/internal/core"
-	"fotonaik/internal/ftp"
-	"fotonaik/internal/server"
-	"fotonaik/internal/usbcam"
-	"fotonaik/internal/video"
+	"milesshoot/internal/core"
+	"milesshoot/internal/ftp"
+	"milesshoot/internal/server"
+	"milesshoot/internal/usbcam"
+	"milesshoot/internal/video"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -92,7 +92,7 @@ func main() {
 	}
 
 	err = wails.Run(&options.App{
-		Title:            "fotonaik",
+		Title:            "milesshoot",
 		Width:            1180,
 		Height:           780,
 		MinWidth:         900,
@@ -108,11 +108,16 @@ func main() {
 	}
 }
 
-// Folder data: ~/Library/Application Support/fotonaik (Mac), %AppData%/fotonaik (Windows).
+// Folder data: ~/Library/Application Support/milesshoot (Mac), %AppData%/milesshoot (Windows).
 func appDataDir() string {
 	if d, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(d, "fotonaik")
+		dir := filepath.Join(d, "milesshoot")
+		// Migrasi satu kali dari nama lama (fotonaik) agar login & setelan tidak hilang.
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			_ = os.Rename(filepath.Join(d, "fotonaik"), dir)
+		}
+		return dir
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".fotonaik")
+	return filepath.Join(home, ".milesshoot")
 }

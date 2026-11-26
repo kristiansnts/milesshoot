@@ -71,7 +71,7 @@ func New(o Opts) *Cam {
 // FindHelper mencari program pembantu: di sebelah aplikasi (saat dipaketkan),
 // lalu di build/helpers (saat pengembangan).
 func FindHelper() string {
-	name := "fotonaik-kamera"
+	name := "milesshoot-kamera"
 	var cands []string
 	if exe, err := os.Executable(); err == nil {
 		dir := filepath.Dir(exe)

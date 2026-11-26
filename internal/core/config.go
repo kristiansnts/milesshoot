@@ -253,9 +253,8 @@ func (c *Config) normalize() {
 	if !oneOf(s.Parity.Mode, "all", "odd", "even") {
 		s.Parity.Mode = "all"
 	}
-	if s.Parity.Mode == "all" {
-		s.Parity.Only = false
-	}
+	// Ganjil/genap selalu berarti "hanya itu" (bukan sekadar didahulukan): Only diturunkan dari Mode.
+	s.Parity.Only = s.Parity.Mode != "all"
 	s.MaxRetries = clamp(s.MaxRetries, 0, 20)
 	s.LUT.Strength = clamp(s.LUT.Strength, 0, 100)
 	s.Hires.LUTStrength = clamp(s.Hires.LUTStrength, 0, 100)

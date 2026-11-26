@@ -6,7 +6,7 @@
 //   - mendeteksi kamera tersambung/terlepas
 //   - mengunduh foto BARU yang dijepret ke folder yang diberikan
 //
-// Dipanggil: fotonaik-kamera <folder-tujuan>
+// Dipanggil: milesshoot-kamera <folder-tujuan>
 // Keluaran : satu JSON per baris ke stdout, dibaca oleh proses Go induknya.
 //   {"event":"ready"}
 //   {"event":"connected","model":"NIKON Z 5"}
@@ -158,7 +158,7 @@ extension CameraHelper: ICCameraDeviceDownloadDelegate {}
 
 let args = CommandLine.arguments
 guard args.count >= 2 else {
-    emit(["event": "error", "msg": "pemakaian: fotonaik-kamera <folder-tujuan>"])
+    emit(["event": "error", "msg": "pemakaian: milesshoot-kamera <folder-tujuan>"])
     exit(2)
 }
 let helper = CameraHelper(outDir: URL(fileURLWithPath: args[1], isDirectory: true))

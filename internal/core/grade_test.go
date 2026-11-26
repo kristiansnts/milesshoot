@@ -64,7 +64,7 @@ func TestWatermarkPreviewImage(t *testing.T) {
 		t.Fatalf("hasil (mati) bukan JPEG valid: %v", err)
 	}
 
-	withWm, err := WatermarkPreviewImage(Watermark{Enabled: true, Type: "text", Text: "fotonaik", Pos: "br", Size: 22, Opacity: 80})
+	withWm, err := WatermarkPreviewImage(Watermark{Enabled: true, Type: "text", Text: "milesshoot", Pos: "br", Size: 22, Opacity: 80})
 	if err != nil {
 		t.Fatalf("WatermarkPreviewImage (nyala): %v", err)
 	}

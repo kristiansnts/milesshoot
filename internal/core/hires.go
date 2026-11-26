@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 )
 
 // Hi-res: foto/video yang TERJUAL di FotoYu menunggu dikirimi file aslinya.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 )
 
 // StartAutoLoop/StopAutoLoop: harus benar-benar berhenti (tidak terus tick setelah

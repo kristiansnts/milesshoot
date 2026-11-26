@@ -1,5 +1,5 @@
 // Package fotoyu adalah penghubung ke API FotoYu, disusun dari rekaman web fotoyu.com.
-// Port dari src/fotoyu-api.js (MAS EDY). Model clone: 1 lisensi = 1 akun, jadi SATU akun per instalasi
+// Port dari src/fotoyu-api.js (MAS EDY). Clone ini memakai SATU akun per instalasi
 // (versi asli mendukung banyak akun; di sini disederhanakan). Password tidak pernah disimpan —
 // hanya token sesi di <dataDir>/fotoyu-akun.json. Bila FotoYu berubah, file inilah yang disesuaikan.
 package fotoyu

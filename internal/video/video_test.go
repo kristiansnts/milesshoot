@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"fotonaik/internal/core"
+	"milesshoot/internal/core"
 )
 
 func TestPrepareVideo(t *testing.T) {

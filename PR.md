@@ -1,6 +1,6 @@
-# fotonaik — Rencana Kerja (PR)
+# milesshoot — Rencana Kerja (PR)
 
-Clone desktop MAS EDY (auto-upload FotoYu) · Go + Wails + Svelte · 1 lisensi = 1 akun.
+Clone desktop MAS EDY (auto-upload FotoYu) · Go + Wails + Svelte.
 Sumber asli untuk referensi port: `~/Library/Application Support/MAS-EDY/`.
 
 ---
@@ -10,11 +10,11 @@ Sumber asli untuk referensi port: `~/Library/Application Support/MAS-EDY/`.
 - **Video** (`internal/video/`): ffmpeg → 17 frame @1440 → zip store (persis web FotoYu).
 - **FotoYu client** (`internal/fotoyu/`): login + refresh single-flight, upload foto/video 3-langkah, SearchTrees, Fee, Storage, TreeLeaves, ListResend/SendResend.
 - **Bridge Wails** (`app.go`) + **server HP** (`internal/server/`, SSE + /api, bind 0.0.0.0:4577) + wiring (`main.go`).
-- **Frontend Svelte minimal**: Unggah (live), Pengaturan (folder/tujuan/login/cari FotoTree/performa), Lisensi (desain), Riwayat, Placeholder.
+- **Frontend Svelte minimal**: Unggah (live), Pengaturan (folder/tujuan/login/cari FotoTree/performa), Riwayat, Placeholder.
 - **Build universal macOS** (arm64 + x86_64) jalan. `wails build -platform darwin/universal`.
 
 ### Catatan teknis (jangan lupa)
-- Data dir: `~/Library/Application Support/fotonaik/`. Server HP: `:4577`.
+- Data dir: `~/Library/Application Support/milesshoot/`. Server HP: `:4577`.
 - Svelte 5 → pakai `mount()` di `main.ts`, BUKAN `new App()` (ini bikin layar putih).
 - Layar tanpa rail kanan pakai class `.single`, bukan `.layout` (`.layout` nyisihin 326px rail).
 - `core.VideoPrepareFn = video.Prepare` diwire di `main.go` (hindari import cycle).
@@ -89,7 +89,7 @@ CSS baru: `.sw` (switch), `.optrow`/`.optseg`, `.srcrow`, `.chip2`, `.feebox`, `
   - Temuan: banyak JPEG (hasil edit/kiriman chat) punya segmen Exif tapi **tanpa** tag tanggal sama sekali — fallback mtime wajib ada, bukan opsional.
 
 ### ✅ GRUP 1b — Pembeda dari MAS EDY: pisah operasi vs konfigurasi · SELESAI 2026-11-17
-MAS EDY menjejalkan semua setelan di layar Unggah. fotonaik memisahkannya — ini pembeda struktural utama.
+MAS EDY menjejalkan semua setelan di layar Unggah. milesshoot memisahkannya — ini pembeda struktural utama.
 - [x] **Unggah = layar operasi.** Hanya: 3 kartu status, panel *Sesi ini* (ringkasan **baca-saja**: folder, tujuan+FotoTree, harga, saringan aktif, kamera Wi-Fi — tiap baris ada tombol **Ubah** yang lompat ke tab Pengaturan yang tepat), aktivitas, cincin progres, switch unggah otomatis, tombol Jeda, dan tombol "Coba lagi N yang gagal" (muncul hanya bila ada yang gagal).
 - [x] **Pengaturan = semua setelan**, dengan sub-tab: **Sumber** (folder, subfolder, pindah-setelah-unggah, Kamera Wi-Fi/FTP lengkap) · **Tujuan unggah** (lokal/FotoYu, preset, cari FotoTree, nama event, tanggal/waktu, harga+fee, deskripsi, nickname) · **Saring file** · **Opsi** (otomatis, urutan, video, kompresi, performa, tema) · **Akun**.
 - [x] Navigasi: `Unggah` kirim event `goto {screen, tab}` → App set layar + tab Pengaturan.
@@ -117,15 +117,15 @@ Semua saringan kini berkumpul di Pengaturan → **Saring file**: nomor (ganjil/g
 
 ### ✅ GRUP 2b — Log & mode debug · SELESAI 2026-11-17
 Ditambahkan untuk menguji sambungan kamera.
-- [x] **`core.FileLogger`** — Emitter tambahan; semua catatan masuk berkas harian `<dataDir>/log/fotonaik-YYYY-MM-DD.log` (simpan 14 hari) + ring 2000 baris di memori untuk layar Log.
+- [x] **`core.FileLogger`** — Emitter tambahan; semua catatan masuk berkas harian `<dataDir>/log/milesshoot-YYYY-MM-DD.log` (simpan 14 hari) + ring 2000 baris di memori untuk layar Log.
 - [x] **`Settings.Debug`** → `ftp.Settings.Debug`: mencatat tiap perintah & balasan (`-> USER`, `<- 331 …`). **Password disamarkan** (`PASS ******`).
 - [x] **Layar Log** di sidebar: saringan level, pencarian teks, salin ke clipboard, buka folder log, toggle mode debug, dan petunjuk singkat cara menguji kamera.
 - [x] Perintah: `LogTail(n)`, `LogFile()`, `OpenLogFolder()`.
-- [x] **`ftp.selfCheck()`** — PENTING: di macOS dua proses bisa sama-sama "berhasil" mengikat port 21, tapi hanya satu yang menerima koneksi. Tanpa ini fotonaik melaporkan "menyala di port 21" padahal kamera tersambung ke aplikasi lain dan log kita bersih — jebakan yang sangat membingungkan. Sekarang server menyambung ke dirinya sendiri, membaca banner, dan bila bukan milik kita → log ERROR yang menyebut nama aplikasi perebutnya. Probe ini dibuat senyap (tidak tercatat sebagai "kamera").
+- [x] **`ftp.selfCheck()`** — PENTING: di macOS dua proses bisa sama-sama "berhasil" mengikat port 21, tapi hanya satu yang menerima koneksi. Tanpa ini milesshoot melaporkan "menyala di port 21" padahal kamera tersambung ke aplikasi lain dan log kita bersih — jebakan yang sangat membingungkan. Sekarang server menyambung ke dirinya sendiri, membaca banner, dan bila bukan milik kita → log ERROR yang menyebut nama aplikasi perebutnya. Probe ini dibuat senyap (tidak tercatat sebagai "kamera").
 - Terbukti: log menangkap percakapan penuh USER→PASS→TYPE→PASV→STOR→QUIT lalu berlanjut "Masuk antrean → Terunggah".
 
 ### ✅ GRUP 2c — Kamera kabel (PTP/tether) macOS · SELESAI 2026-11-17
-- [x] **Helper Swift** `mac/fotonaik-kamera.swift` — ImageCaptureCore (API resmi Apple, sama yang dipakai Image Capture). Build universal: `swiftc -swift-version 5 -O -framework ImageCaptureCore -target arm64-apple-macos11|x86_64-apple-macos11` lalu `lipo -create` → `build/helpers/fotonaik-kamera` (~240 KB).
+- [x] **Helper Swift** `mac/milesshoot-kamera.swift` — ImageCaptureCore (API resmi Apple, sama yang dipakai Image Capture). Build universal: `swiftc -swift-version 5 -O -framework ImageCaptureCore -target arm64-apple-macos11|x86_64-apple-macos11` lalu `lipo -create` → `build/helpers/milesshoot-kamera` (~240 KB).
   - Keluaran: satu JSON per baris ke stdout — `ready` / `connected{model}` / `catalog{ignored}` / `file{path}` / `disconnected` / `error{msg}`.
   - **Hanya jepretan BARU** yang diunduh: isi kartu saat tersambung dijadikan patokan (`baseline`) dan diabaikan.
   - Catatan API: `deviceBrowser(_:didRemove:moreGoing:)` (bukan `moreComing`), dan `ICCameraDeviceDelegate` butuh banyak stub wajib + 3 metode `ICDeviceDelegate`.
@@ -133,7 +133,7 @@ Ditambahkan untuk menguji sambungan kamera.
 - [x] `Settings.UsbCam{Enabled,AutoSource}`. Saat kamera tersambung & AutoSource → folder sumber otomatis dialihkan ke `<dataDir>/kamera-usb` (dicatat jelas di log supaya tidak misterius).
 - [x] UI: panel "Kamera kabel (USB / tether)" di Pengaturan → Sumber + baris ringkas di Unggah. Perintah `UsbCamState`/`UsbCamToggle`.
 - [x] **Diuji dengan kamera sungguhan**: Nikon **Z6 III** terdeteksi lewat helper yang dibundel di `.app`, folder sumber otomatis beralih. Unduh jepretan baru menunggu uji jepret oleh user.
-- ⚠️ **Langkah build manual**: helper harus disalin ke `fotonaik.app/Contents/MacOS/` lalu `codesign --force --deep --sign -` SETELAH `wails build`. Perlu dijadikan postBuildHook di `wails.json`.
+- ⚠️ **Langkah build manual**: helper harus disalin ke `milesshoot.app/Contents/MacOS/` lalu `codesign --force --deep --sign -` SETELAH `wails build`. Perlu dijadikan postBuildHook di `wails.json`.
 - ❌ **Windows belum** — butuh PowerShell + WPD, dan tidak bisa diuji dari Mac. Jangan diklaim selesai sampai dicoba di mesin Windows.
 
 ### ✅ GRUP 2d — Kartu memori / card reader · SELESAI 2026-11-17
@@ -150,14 +150,6 @@ Ditambahkan untuk menguji sambungan kamera.
 - [ ] **Checklist "Siap berangkat"** (ref asli: kartu 1/6) — akun FotoYu, event/FotoTree, harga, folder, kamera, uji internet (speedtest). Butuh command `app.SpeedTest()` (port `speedTest()` dari server.js) untuk uji internet.
 - [ ] **Mode Lapangan** (fullscreen angka besar) — sudah ada di mockup artifact, port ke Svelte sebagai overlay.
 - [ ] **Thumbnail foto terbaru** — serve via `/thumb/<md5>` (processor sudah simpan thumbnail) + command/endpoint.
-
-### GRUP 4 — Lisensi (backend) · model 1 lisensi = 1 akun self-serve
-Ref: `src/license.js` (tapi SEDERHANAKAN — buang model owner-bagi-ke-tim).
-- [ ] Trial 500 foto (hitung dari `store` done count), status aktif/trial.
-- [ ] Kode perangkat (device id) + aktivasi kode lisensi (Ed25519 verify seperti asli).
-- [ ] Alur self-serve: pilih paket → bayar (QRIS/transfer) → lisensi aktif untuk 1 akun. TANPA panel kelola-akun di app user.
-- [ ] Panel admin/penjual = TERPISAH (web/dashboard sendiri), bukan di app fotografer.
-- [ ] Sambungkan layar `Lisensi.svelte` (sekarang desain statis) ke backend.
 
 ### GRUP 5 — Layar yang masih placeholder
 - [x] **Hi-res** — SELESAI 2026-11-17. `internal/core/hires.go` (`HiresManager`; nama `Hires` sudah dipakai struct config).
@@ -211,7 +203,7 @@ Ref: `src/license.js` (tapi SEDERHANAKAN — buang model owner-bagi-ke-tim).
 - [ ] Ikon app (`build/appicon.png`), nama & metadata bundle.
 - [ ] **[auto-update] Riset: cek-update via GitHub Releases**, BUKAN auto-replace diam-diam.
   - Alasan: app desktop (bukan web) jadi tidak ada cara "refresh browser" dapat versi baru — kalau tanpa mekanisme apa pun, user harus download ulang manual tiap rilis.
-  - Rencana realistis: Go app fetch manifest JSON kecil (mis. `GET https://api.github.com/repos/<org>/fotonaik/releases/latest`) saat start + polling berkala, bandingkan `version` dengan versi terpasang (embed via `ldflags -X`), kalau beda → tampilkan banner "Update tersedia vX.Y — unduh" dengan link ke installer, BUKAN auto-download-dan-replace-diri-sendiri.
+  - Rencana realistis: Go app fetch manifest JSON kecil (mis. `GET https://api.github.com/repos/<org>/milesshoot/releases/latest`) saat start + polling berkala, bandingkan `version` dengan versi terpasang (embed via `ldflags -X`), kalau beda → tampilkan banner "Update tersedia vX.Y — unduh" dengan link ke installer, BUKAN auto-download-dan-replace-diri-sendiri.
   - Auto-replace penuh (seperti Sparkle di macOS / Squirrel di Windows) butuh code-signing + notarization (Apple) dan Authenticode cert (Windows) supaya OS tidak block installer tak dikenal — ini keputusan terpisah, belum ada akun signing. Tanpa signing, auto-replace diam-diam cuma akan kena Gatekeeper/SmartScreen warning, jadi untuk sekarang cek-saja (manual klik unduh) lebih realistis.
   - Belum diimplementasi — baru catatan rencana. Keputusan pending: hosting rilis (GitHub Releases vs self-host), dan apakah invest ke code-signing sebelum rilis publik.
 
@@ -230,7 +222,7 @@ Ref: `src/license.js` (tapi SEDERHANAKAN — buang model owner-bagi-ke-tim).
   - **UI Unggah — revisi setelah feedback user (2026-11-18)**: progres per folder awalnya ditaruh sebagai panel inline yang cuma muncul kalau >1 folder aktif. User minta pola berbeda: **modal/dialog** yang dibuka lewat tombol "Tambah folder" di baris "Folder sumber" (panel "Sesi ini") — modal berisi daftar SEMUA folder aktif (utama ditandai pil "utama", tak bisa dihapus; tambahan punya tombol ×), masing-masing dengan bar progres (hijau = berjalan/`Memproses…`, merah = `Selesai dengan N error`, abu = `Menunggu file`) + angka "selesai/total", dan tombol "+ Tambah folder" di PALING BAWAH daftar (persis diminta: "ada button tambah folder dibawahnya"). CSS modal baru (`.modal-bg`/`.modal`/`.frow`) di `style.css`.
   - **Diverifikasi visual 3x**: screenshot headless Chrome pertama (state kosong, tanpa folder) lalu kedua dengan data tiruan (2 folder: satu 12/15 berjalan hijau, satu 5/7 selesai-dengan-error merah) — keduanya cocok dengan maksud user sebelum data tiruan dibuang lagi.
   - **Tombol "Unggah" di dalam modal (diminta user)**: selain "+ Tambah folder", modal sekarang juga punya tombol "Unggah"/"Jeda unggah" (reuse `toggle()` yang sudah ada — `api.resume()`/`api.pause()`) berdampingan di baris paling bawah — supaya mulai mengunggah bisa dilakukan TANPA menutup modal, dan progress bar per folder langsung terlihat berjalan karena modal tidak pernah di-unmount (reaktivitas Svelte tetap jalan di balik layar walau dialog terbuka). Diverifikasi visual ketiga kalinya (dua tombol berdampingan + bar tetap live).
-  - **Catatan build**: fitur ini sempat tidak terlihat user karena app desktop yang sedang dibuka adalah build LAMA (dari sebelum sesi fitur ini) — `wails build` tidak otomatis jalan tiap kali kode berubah, harus di-trigger manual (plus copy `fotonaik-kamera` + `codesign` ulang, lihat catatan GRUP 2c). Diingatkan di sini supaya tidak terulang: selalu rebuild+resign setelah perubahan Go/frontend sebelum klaim "sudah bisa dicek di app".
+  - **Catatan build**: fitur ini sempat tidak terlihat user karena app desktop yang sedang dibuka adalah build LAMA (dari sebelum sesi fitur ini) — `wails build` tidak otomatis jalan tiap kali kode berubah, harus di-trigger manual (plus copy `milesshoot-kamera` + `codesign` ulang, lihat catatan GRUP 2c). Diingatkan di sini supaya tidak terulang: selalu rebuild+resign setelah perubahan Go/frontend sebelum klaim "sudah bisa dicek di app".
   - 5 tes unit baru (`multifolder_test.go`): `AllWatchFolders` dedup, `RootFor` 2 folder + file di luar keduanya, `ArchiveDir`/`InArchive` per-folder, dan **satu tes pipeline penuh** (`TestMultiFolderPipeline`) yang benar-benar menjalankan Engine dengan 2 folder sumber berisi file asli, menunggu ketiganya ter-upload, lalu memverifikasi `FolderProgress()` dan bahwa arsip folder B tidak nyasar ke folder A.
   - **Diverifikasi visual**: screenshot headless Chrome (`capture_browser_scenario`, klik ke tab Pengaturan → Sumber) menunjukkan panel "Folder tambahan" tampil benar.
 
@@ -246,6 +238,6 @@ Ref: `src/license.js` (tapi SEDERHANAKAN — buang model owner-bagi-ke-tim).
    3. ✅ Progres kecepatan — selesai (scope dikoreksi user: bukan grafik riwayat, cuma angka hidup)
    4. ~~Warna (LUT) picker di UI~~ — sudah selesai bersama #2
    5. ✅ Multi-folder kompresi konkuren — selesai, termasuk progress bar per folder
-5. **GRUP 4 (Lisensi)** — dimajukan ke depan GRUP 3, diminta user 2026-11-18.
-6. **GRUP 3 (UI murni)** — mundur setelah GRUP 4 (dibalik dari urutan lama).
+5. ~~GRUP 4 (Lisensi)~~ — DIBATALKAN 2026-11-24: app dijual putus, tanpa sistem lisensi/backend.
+6. **GRUP 3 (UI murni)**
 7. GRUP 6 (rilis: Windows build, commit, ikon, auto-update).

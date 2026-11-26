@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 
 	xdraw "golang.org/x/image/draw"
 )
@@ -99,7 +99,7 @@ func prepareHiresPhoto(path string, hc Hires) (f fotoyu.ResendFile, cleanup func
 		return f, cleanup, "", nil
 	}
 
-	tmp, err := os.CreateTemp("", "fotonaik-hires-*.jpg")
+	tmp, err := os.CreateTemp("", "milesshoot-hires-*.jpg")
 	if err != nil {
 		return f, cleanup, "", fmt.Errorf("gagal membuat file sementara: %v", err)
 	}
@@ -175,6 +175,19 @@ func enlargeToTarget(src *image.RGBA, curSize int64) ([]byte, error) {
 		return nil, fmt.Errorf("foto tidak bisa diperbesar sampai 1 MB")
 	}
 	return best, nil
+}
+
+// MinHiresBytes: foto di bawah ukuran ini dianggap terlalu kecil untuk hi-res FotoYu.
+const MinHiresBytes = hiresMinBytes
+
+// EnlargeJPEG memperbesar sebuah JPEG (di memori) sampai ±2 MB, sama seperti kirim hi-res.
+// Resolusi dinaikkan; detail aslinya tidak bertambah.
+func EnlargeJPEG(raw []byte) ([]byte, error) {
+	img, err := jpeg.Decode(bytes.NewReader(raw))
+	if err != nil {
+		return nil, fmt.Errorf("foto tidak bisa dibaca: %v", err)
+	}
+	return enlargeToTarget(orientRGBA(img, 1), int64(len(raw)))
 }
 
 // exifOrientation membaca tag Orientation (0x0112) dari JPEG di memori. 1 bila tidak ada.

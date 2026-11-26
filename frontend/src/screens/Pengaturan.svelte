@@ -400,10 +400,7 @@
         </div>
       </div>
       {#if par.mode !== "all"}
-        <div class="row">
-          <div class="oi"><b>Hanya yang dipilih</b><span>sisanya tidak diunggah sama sekali — begitu antreannya habis, unggah otomatis berhenti sendiri</span></div>
-          <button class="sw" class:on={par.only} on:click={() => patch({ parity: { only: !par.only } })} aria-label="Hanya ganjil/genap"><i></i></button>
-        </div>
+        <div class="muted" style="font-size:12px;padding:8px 4px 2px">Hanya file bernomor {par.mode === "odd" ? "ganjil" : "genap"} yang diunggah, sisanya dilewati. Begitu antreannya habis, unggah otomatis berhenti sendiri.</div>
       {/if}
     </div>
   {/if}
@@ -448,6 +445,8 @@
       </div>
     </div>
 
+    <!-- LUT & watermark disembunyikan; panelnya hanya muncul bila masih aktif, supaya tetap bisa dimatikan. -->
+    {#if lutCfg.photo || lutCfg.video}
     <div class="panel">
       <div class="ph"><h3>Warna (LUT)</h3><span class="pc">{luts.length} di pustaka</span></div>
       <div style="padding:4px 18px 16px">
@@ -478,7 +477,9 @@
         <input type="range" min="0" max="100" value={lutCfg.strength} on:change={(e) => patch({ lut: { strength: +e.currentTarget.value } })} />
       </div>
     </div>
+    {/if}
 
+    {#if wm.enabled}
     <div class="panel">
       <div class="ph"><h3>Watermark</h3></div>
       <div class="row">
@@ -522,6 +523,7 @@
       </div>
       {/if}
     </div>
+    {/if}
 
     <div class="panel">
       <div class="ph"><h3>Tampilan</h3></div>
@@ -542,7 +544,7 @@
       <div class="ph"><h3>Akun FotoYu</h3>{#if fyOn}<span class="pill ok">@{acct.username}</span>{/if}</div>
       {#if fyOn}
         <div class="row">
-          <div class="oi"><b>{acct.name || acct.username}</b><span>tersambung · 1 lisensi = 1 akun</span></div>
+          <div class="oi"><b>{acct.name || acct.username}</b><span>tersambung</span></div>
           <button class="btn s sm" on:click={() => api.logout()}>Keluar</button>
         </div>
       {:else if isDesktop()}

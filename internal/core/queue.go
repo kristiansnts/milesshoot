@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -282,15 +283,40 @@ func (q *UploadQueue) AddFile(path string, size int64) {
 	q.wake()
 }
 
+// AddDirect memasukkan satu foto ke antrean atas permintaan pemakai (mis. hasil Video → Foto),
+// di mana pun letak filenya. Tidak kena saringan ganjil/genap, tidak harus berada di folder
+// pantau, dan setelah terunggah tidak dipindah (Requeue). false = sudah pernah diunggah/ada di antrean.
+func (q *UploadQueue) AddDirect(path string) (bool, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	q.hashGate.enter(2)
+	sum, herr := md5File(path)
+	q.hashGate.leave()
+	if herr != nil {
+		return false, herr
+	}
+	if q.store.Has(sum) {
+		return false, nil
+	}
+	cfg := q.cfg.Get()
+	q.store.Add(&Record{
+		MD5: sum, Path: path, Name: filepath.Base(path), Size: fi.Size(), Kind: "photo",
+		MTime: fileMTimeMs(path), Status: "pending", AddedAt: nowMs(), Requeue: true,
+		Event: cfg.Event.Name, Destination: cfg.Destination,
+	})
+	q.emit.Log("info", "Masuk antrean: "+filepath.Base(path))
+	q.emit.Emit("change", nil)
+	q.wake()
+	return true, nil
+}
+
 // ---------- pilih & jalankan ----------
 
 func (q *UploadQueue) nextJob(cfg Settings) *Record {
 	now := nowMs()
 	newest := cfg.UploadOrder != "oldest"
-	parMode := ""
-	if cfg.Parity.Mode != "all" {
-		parMode = cfg.Parity.Mode
-	}
 	var best *Record
 	bestP, bestT := -1, int64(0)
 	q.store.ForEach(func(r *Record) {
@@ -300,14 +326,14 @@ func (q *UploadQueue) nextJob(cfg Settings) *Record {
 		if !q.inCurrent(r, cfg) {
 			return
 		}
+		if parityBlocked(r, cfg) {
+			return
+		}
 		if r.Kind == "video" && cfg.Video.Confirm && !r.OriOK {
 			return
 		}
 		aged := now-r.AddedAt > 30*60*1000
 		p := 0
-		if parMode != "" && ParityOf(firstNonEmpty(r.Name, r.Path)) == parMode {
-			p += 4
-		}
 		if aged {
 			p++
 		}
@@ -323,6 +349,28 @@ func (q *UploadQueue) nextJob(cfg Settings) *Record {
 		}
 	})
 	return best
+}
+
+// parityBlocked: saringan nomor eksklusif aktif dan file ini bernomor lain. File itu dibiarkan
+// menunggu (naik lagi bila saringan dikembalikan ke "Semua"); file tanpa nomor tidak disaring.
+func parityBlocked(r *Record, cfg Settings) bool {
+	if !cfg.Parity.Only || cfg.Parity.Mode == "all" || r.Requeue {
+		return false
+	}
+	pf := ParityOf(firstNonEmpty(r.Name, r.Path))
+	return pf != "" && pf != cfg.Parity.Mode
+}
+
+// hasParityPending: masih ada antrean menunggu yang lolos saringan nomor. File bernomor lain
+// yang tertinggal di antrean tidak dihitung, supaya tidak menahan auto-jeda selamanya.
+func (q *UploadQueue) hasParityPending(cfg Settings) bool {
+	found := false
+	q.store.ForEach(func(r *Record) {
+		if !found && r.Status == "pending" && !parityBlocked(r, cfg) {
+			found = true
+		}
+	})
+	return found
 }
 
 // Hanya file dari folder sumber yang sedang dipilih (utama ATAU tambahan) yang diunggah
@@ -372,8 +420,7 @@ func (q *UploadQueue) pump() {
 	// berhenti sendiri — supaya tidak diam-diam lanjut mengunggah file baru yang masuk
 	// setelah batch ini (biasanya jadi tanggung jawab laptop/akun lain).
 	if cfg.Parity.Only && cfg.Parity.Mode != "all" {
-		counts := q.store.Counts()
-		if active > 0 || counts.Pending > 0 || counts.Uploading > 0 {
+		if active > 0 || q.store.Counts().Uploading > 0 || q.hasParityPending(cfg) {
 			q.parityHadWork = true
 		} else if q.parityHadWork {
 			q.parityHadWork = false
@@ -532,6 +579,48 @@ func (q *UploadQueue) run(job Record) {
 
 // ---------- penanganan error (port dari run() di queue.js) ----------
 
+// failContext: rincian teknis yang ditempel di catatan gagal, supaya satu baris log sudah cukup
+// untuk memahami masalahnya (kode HTTP, tahap, percobaan ke-berapa, ukuran, balasan FotoYu).
+func failContext(job Record, ue *UploadError, attempts, max int) string {
+	parts := []string{"tahap=" + firstNonEmpty(job.Stage, "-")}
+	if ue != nil && ue.Status != 0 {
+		parts = append(parts, fmt.Sprintf("http=%d", ue.Status))
+	}
+	parts = append(parts, fmt.Sprintf("percobaan=%d/%d", attempts, max+1),
+		fmt.Sprintf("ukuran=%dKB", job.Size/1024), "jenis="+job.Kind, "tujuan="+job.Destination)
+	if len(job.MD5) >= 8 {
+		parts = append(parts, "id="+job.MD5[:8])
+	}
+	if ue != nil {
+		var f []string
+		if ue.Permanent {
+			f = append(f, "permanen")
+		}
+		if ue.Account {
+			f = append(f, "akun")
+		}
+		if ue.Local {
+			f = append(f, "olah-gambar")
+		}
+		if ue.Put {
+			f = append(f, "kirim-penyimpanan")
+		}
+		if ue.Duplicate != "" {
+			f = append(f, "dobel="+ue.Duplicate)
+		}
+		if len(f) > 0 {
+			parts = append(parts, "ciri="+strings.Join(f, ","))
+		}
+		if d := strings.TrimSpace(ue.Detail); d != "" {
+			if len(d) > 400 {
+				d = d[:400] + "…"
+			}
+			parts = append(parts, "fotoyu="+strconv.Quote(d))
+		}
+	}
+	return " [" + strings.Join(parts, " · ") + "]"
+}
+
 func (q *UploadQueue) handleError(job Record, kind string, cfg Settings, err error) {
 	ue, _ := err.(*UploadError)
 	msg := err.Error()
@@ -551,7 +640,7 @@ func (q *UploadQueue) handleError(job Record, kind string, cfg Settings, err err
 			if ue.Detail != "" {
 				detail = " (FotoYu: " + ue.Detail + ")"
 			}
-			q.emit.Log("error", "Upload dijeda: "+msg+detail)
+			q.emit.Log("error", "Upload dijeda: "+msg+detail+failContext(job, ue, job.Attempts+1, cfg.MaxRetries))
 		}
 		q.mu.Unlock()
 		return
@@ -600,7 +689,7 @@ func (q *UploadQueue) handleError(job Record, kind string, cfg Settings, err err
 			}
 		})
 		if giveUp {
-			q.emit.Log("error", "Gagal: "+job.Name+" — "+msg)
+			q.emit.Log("error", "Gagal: "+job.Name+" — "+msg+failContext(job, ue, tries, 19))
 		}
 		return
 	}
@@ -722,9 +811,9 @@ func (q *UploadQueue) handleError(job Record, kind string, cfg Settings, err err
 		}
 	})
 	if giveUp {
-		q.emit.Log("error", "Gagal: "+job.Name+" — "+msg)
+		q.emit.Log("error", "Gagal: "+job.Name+" — "+msg+failContext(job, ue, attempts, cfg.MaxRetries))
 	} else {
-		q.emit.Log("warn", fmt.Sprintf("Ulang dalam %d dtk: %s — %s", delay/1000, job.Name, msg))
+		q.emit.Log("warn", fmt.Sprintf("Ulang dalam %d dtk: %s — %s", delay/1000, job.Name, msg)+failContext(job, ue, attempts, cfg.MaxRetries))
 	}
 }
 

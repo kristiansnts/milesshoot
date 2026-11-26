@@ -178,9 +178,9 @@ func (s *Server) selfCheck(port int) {
 	buf := make([]byte, 160)
 	n, _ := c.Read(buf)
 	banner := strings.TrimSpace(strings.SplitN(string(buf[:n]), "\n", 2)[0])
-	if banner != "" && !strings.Contains(banner, "fotonaik") {
+	if banner != "" && !strings.Contains(banner, "milesshoot") {
 		s.log("error", fmt.Sprintf(
-			"Port %d sudah dipakai aplikasi lain (%q) — kamera akan tersambung ke sana, BUKAN ke fotonaik. Tutup aplikasi itu, atau ganti port FTP di Pengaturan.",
+			"Port %d sudah dipakai aplikasi lain (%q) — kamera akan tersambung ke sana, BUKAN ke milesshoot. Tutup aplikasi itu, atau ganti port FTP di Pengaturan.",
 			port, banner))
 	}
 }
@@ -222,7 +222,7 @@ func (s *Server) handle(conn net.Conn) {
 	if !probe {
 		lg("info", "kamera tersambung")
 	}
-	reply(220, "fotonaik FTP siap")
+	reply(220, "milesshoot FTP siap")
 
 	r := bufio.NewReader(conn)
 	for {
@@ -258,7 +258,7 @@ func (s *Server) command(line string, st *session, reply func(int, string), lg f
 		if st.user == cfg.User && arg == cfg.Pass && cfg.Pass != "" {
 			if cfg.Root == "" || !isDir(cfg.Root) {
 				lg("error", "login ditolak: folder dipantau belum diatur")
-				reply(530, "Folder tujuan di fotonaik belum diatur")
+				reply(530, "Folder tujuan di milesshoot belum diatur")
 				return false
 			}
 			st.authed = true
@@ -479,7 +479,7 @@ func (s *Server) handleList(cmd, arg string, cfg Settings, st *session, reply fu
 			if e.IsDir() {
 				d = "d"
 			}
-			lines = append(lines, fmt.Sprintf("%srw-r--r-- 1 fotonaik fotonaik %10d %s %2d %02d:%02d %s",
+			lines = append(lines, fmt.Sprintf("%srw-r--r-- 1 milesshoot milesshoot %10d %s %2d %02d:%02d %s",
 				d, size, mt.Format("Jan"), mt.Day(), mt.Hour(), mt.Minute(), e.Name()))
 		}
 	}

@@ -78,6 +78,13 @@ export const api = {
   // Kamera kabel (PTP/tethering)
   usbCamState: () => desktop()?.UsbCamState?.() ?? Promise.resolve(null),
   usbCamToggle: (on: boolean) => desktop()?.UsbCamToggle?.(on) ?? Promise.resolve(null),
+  // Video → Foto (desktop saja)
+  vfState: () => desktop()?.VideoPhotoState?.() ?? Promise.resolve(null),
+  vfPickFiles: () => desktop()?.VideoPhotoPickFiles?.() ?? Promise.resolve(null),
+  vfPickFolder: () => desktop()?.VideoPhotoPickFolder?.() ?? Promise.resolve(null),
+  vfStart: (files: string[], opts: string) => desktop()?.VideoPhotoStart?.(files, opts) ?? Promise.resolve(null),
+  vfCancel: () => desktop()?.VideoPhotoCancel?.(),
+  vfReveal: (dir: string) => desktop()?.VideoPhotoReveal?.(dir),
   // Ranking (peringkat daun per akun di sebuah FotoTree)
   rankingStart: (treeId: string, name: string, range: string) => desktop()?.RankingStart?.(treeId, name, range) ?? Promise.resolve(null),
   rankingStatus: (treeId: string, range: string) => desktop()?.RankingStatus?.(treeId, range) ?? Promise.resolve(null),
@@ -88,6 +95,8 @@ export const api = {
   // Log (debug sambungan kamera)
   logTail: (n: number) => desktop()?.LogTail?.(n) ?? Promise.resolve([]),
   logFile: () => desktop()?.LogFile?.() ?? Promise.resolve(""),
+  diagReport: () => desktop()?.DiagnosticReport?.() ?? Promise.resolve(""),
+  diagSave: () => desktop()?.SaveDiagnosticReport?.() ?? Promise.resolve(""),
   openLogFolder: () => desktop()?.OpenLogFolder?.(),
   phoneURLs: () => desktop()?.PhoneURLs?.() ?? Promise.resolve([]),
 };

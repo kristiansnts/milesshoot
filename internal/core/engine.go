@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fotonaik/internal/fotoyu"
+	"milesshoot/internal/fotoyu"
 )
 
 // Engine merangkai seluruh core: config, store, scanner, queue, client FotoYu, processor.
@@ -89,7 +89,7 @@ func (e *Engine) Status() Status {
 	paused, reason, msg := e.Queue.Paused()
 	counts := e.Store.Counts()
 	return Status{
-		App:         "fotonaik",
+		App:         "milesshoot",
 		Paused:      paused,
 		PauseReason: reason,
 		PauseMsg:    msg,

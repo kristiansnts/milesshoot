@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"fotonaik/internal/core"
+	"milesshoot/internal/core"
 )
 
 type sseMsg struct {
