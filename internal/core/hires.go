@@ -412,6 +412,18 @@ func resendFileInfo(path, kind string) (fotoyu.ResendFile, error) {
 		return out, fmt.Errorf("ukuran gambar tidak terbaca")
 	}
 	out.Width, out.Height = cfg.Width, cfg.Height
+	// File dikirim apa adanya (EXIF tetap ada), jadi viewer akan memutarnya: untuk orientasi
+	// 5–8 lebar/tinggi yang dilaporkan harus ditukar, kalau tidak FotoYu menampilkan
+	// foto portrait sebagai 3024×2016 (kebalik).
+	if jpegExt[strings.ToLower(filepath.Ext(path))] {
+		head := make([]byte, maxExifScan)
+		if _, err := f.Seek(0, io.SeekStart); err == nil {
+			n, _ := io.ReadFull(f, head)
+			if o := exifOrientation(head[:n]); o >= 5 && o <= 8 {
+				out.Width, out.Height = out.Height, out.Width
+			}
+		}
+	}
 	return out, nil
 }
 
