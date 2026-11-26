@@ -69,6 +69,7 @@ type fakeRelease struct {
 	status   int
 	asset    string
 	zipBytes func([]byte) []byte // untuk merusak isi zip setelah ditandatangani
+	web      bool                // halaman web rilis (cadangan saat API kena batas) menjawab dengan benar
 }
 
 func newFake(t *testing.T, tag string) *fakeRelease {
@@ -87,6 +88,13 @@ func newFake(t *testing.T, tag string) *fakeRelease {
 			assets = append(assets, map[string]any{"name": f.asset + ".sig", "browser_download_url": f.srv.URL + "/dl/" + f.asset + ".sig"})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"tag_name": f.tag, "body": "Catatan rilis", "draft": f.draft, "assets": assets})
+	})
+	mux.HandleFunc("/o/r/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		if !f.web {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, f.srv.URL+"/o/r/releases/tag/"+f.tag, http.StatusFound)
 	})
 	mux.HandleFunc("/dl/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, ".sig") {
@@ -107,7 +115,7 @@ func newFake(t *testing.T, tag string) *fakeRelease {
 }
 
 func (f *fakeRelease) client() *Client {
-	return &Client{Repo: "o/r", APIBase: f.srv.URL, HTTP: f.srv.Client(), PubKey: f.pub, GOOS: "darwin", GOARCH: "arm64", Insecure: true}
+	return &Client{Repo: "o/r", APIBase: f.srv.URL, WebBase: f.srv.URL, HTTP: f.srv.Client(), PubKey: f.pub, GOOS: "darwin", GOARCH: "arm64", Insecure: true}
 }
 
 func TestCheck(t *testing.T) {
@@ -300,5 +308,25 @@ func TestCheckFollowsRepoRenameRedirect(t *testing.T) {
 	rel, err := c.Check(context.Background(), "1.0.0")
 	if err != nil || rel == nil || rel.Version != "1.1.0" {
 		t.Fatalf("pengalihan 301 harus diikuti: %+v %v", rel, err)
+	}
+}
+
+func TestCheckFallsBackToWebWhenRateLimited(t *testing.T) {
+	ctx := context.Background()
+	f := newFake(t, "v1.1.0")
+	f.status = http.StatusForbidden
+	// web tak tersedia → galat batas laju yang jelas
+	if _, err := f.client().Check(ctx, "1.0.0"); err == nil || !strings.Contains(err.Error(), "membatasi") {
+		t.Fatalf("harus galat batas laju: %v", err)
+	}
+	f.web = true
+	r, err := f.client().Check(ctx, "1.0.0")
+	if err != nil || r == nil || r.Version != "1.1.0" || r.Tag != "v1.1.0" ||
+		!strings.HasSuffix(r.AssetURL, "/o/r/releases/download/v1.1.0/milesshoot-darwin-arm64.zip") ||
+		!strings.HasSuffix(r.SigURL, "/o/r/releases/download/v1.1.0/milesshoot-darwin-arm64.zip.sig") {
+		t.Fatalf("cadangan web salah: %+v %v", r, err)
+	}
+	if r, err := f.client().Check(ctx, "1.1.0"); r != nil || err != nil {
+		t.Fatalf("sudah terbaru harus (nil,nil): %v %v", r, err)
 	}
 }

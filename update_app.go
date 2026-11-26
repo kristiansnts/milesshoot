@@ -223,6 +223,12 @@ func (a *App) UpdateInstall() error {
 	go func() {
 		time.Sleep(400 * time.Millisecond)
 		wrt.Quit(a.ctx)
+		// Bila aplikasi masih hidup 10 dtk kemudian, jangan biarkan tombol "Memasang…" terkunci
+		// selamanya: versi baru sudah di tempatnya, tinggal ditutup & dibuka manual.
+		time.Sleep(10 * time.Second)
+		msg := "Versi baru sudah terpasang tapi aplikasi belum menutup sendiri — tutup aplikasi lalu buka lagi."
+		a.updSet(func(s *UpdateInfo) { s.Installing, s.Error = false, msg })
+		a.eng.Log("warn", "[Update] "+msg)
 	}()
 	return nil
 }

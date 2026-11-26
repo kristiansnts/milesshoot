@@ -34,6 +34,7 @@ const (
 	maxSigBytes  = 4 << 10
 	maxAPIBytes  = 2 << 20
 	defaultAPI   = "https://api.github.com"
+	defaultWeb   = "https://github.com"
 	userAgent    = "milesshoot-updater"
 	maxNotesRune = 4000
 )
@@ -60,6 +61,7 @@ type Release struct {
 type Client struct {
 	Repo     string
 	APIBase  string // bawaan https://api.github.com
+	WebBase  string // bawaan https://github.com (cadangan saat API kena batas laju)
 	HTTP     *http.Client
 	PubKey   ed25519.PublicKey
 	GOOS     string
@@ -79,7 +81,7 @@ func New(repo string) (*Client, error) {
 	if err != nil || len(raw) != ed25519.PublicKeySize {
 		return nil, errors.New("kunci publik pembaruan di build ini tidak valid")
 	}
-	return &Client{Repo: repo, APIBase: defaultAPI, HTTP: &http.Client{}, PubKey: ed25519.PublicKey(raw),
+	return &Client{Repo: repo, APIBase: defaultAPI, WebBase: defaultWeb, HTTP: &http.Client{}, PubKey: ed25519.PublicKey(raw),
 		GOOS: runtime.GOOS, GOARCH: runtime.GOARCH}, nil
 }
 
@@ -151,6 +153,11 @@ func (c *Client) Check(ctx context.Context, current string) (*Release, error) {
 	case res.StatusCode == http.StatusNotFound:
 		return nil, ErrNotFound
 	case res.StatusCode == http.StatusForbidden || res.StatusCode == http.StatusTooManyRequests:
+		// API tanpa token dibatasi 60 permintaan/jam per IP — di jaringan bersama (kantor, seluler
+		// CGNAT) cepat habis. Cadangan: halaman web rilis tidak memakai batas API itu.
+		if rel, werr := c.checkWeb(ctx, current); werr == nil || errors.Is(werr, ErrNotFound) {
+			return rel, werr
+		}
 		return nil, fmt.Errorf("GitHub membatasi permintaan (HTTP %d) — coba lagi nanti", res.StatusCode)
 	case res.StatusCode != http.StatusOK:
 		return nil, fmt.Errorf("GitHub menjawab HTTP %d", res.StatusCode)
@@ -184,6 +191,62 @@ func (c *Client) Check(ctx context.Context, current string) (*Release, error) {
 		return nil, fmt.Errorf("rilis %s tidak punya berkas %s beserta .sig untuk %s/%s", gr.TagName, want, c.GOOS, c.GOARCH)
 	}
 	return rel, nil
+}
+
+var tagRe = regexp.MustCompile(`^[vV]?[0-9]+(\.[0-9]+)*$`)
+
+// checkWeb: cadangan tanpa API. /releases/latest dialihkan GitHub ke /releases/tag/<tag>, dari situ
+// tag dan alamat unduhan (pola tetap /releases/download/<tag>/<berkas>) bisa dibentuk. Catatan rilis
+// tidak ikut (hanya ada di API). Keaslian tetap dijaga tanda tangan, yang mencakup tag + berkas.
+func (c *Client) checkWeb(ctx context.Context, current string) (*Release, error) {
+	web := c.WebBase
+	if web == "" {
+		web = defaultWeb
+	}
+	latest := web + "/" + c.Repo + "/releases/latest"
+	u, err := url.Parse(latest)
+	if err != nil || (u.Scheme != "https" && !(c.Insecure && u.Scheme == "http")) {
+		return nil, fmt.Errorf("alamat tidak aman: %q", latest)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latest, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	hc := c.HTTP
+	if hc == nil {
+		hc = &http.Client{}
+	}
+	cl := *hc
+	cl.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	res, err := cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	res.Body.Close()
+	if res.StatusCode == http.StatusNotFound {
+		return nil, ErrNotFound
+	}
+	loc := res.Header.Get("Location")
+	i := strings.LastIndex(loc, "/releases/tag/")
+	if res.StatusCode < 300 || res.StatusCode >= 400 || i < 0 {
+		return nil, fmt.Errorf("GitHub (web) menjawab HTTP %d", res.StatusCode)
+	}
+	tag := loc[i+len("/releases/tag/"):]
+	if !tagRe.MatchString(tag) {
+		return nil, fmt.Errorf("tag rilis %q tidak dikenali", tag)
+	}
+	newer, err := Newer(tag, current)
+	if err != nil {
+		return nil, err
+	}
+	if !newer {
+		return nil, nil
+	}
+	want := AssetName(c.GOOS, c.GOARCH)
+	base := web + "/" + c.Repo + "/releases/download/" + tag + "/"
+	return &Release{Tag: tag, Version: strings.TrimPrefix(strings.TrimPrefix(tag, "v"), "V"),
+		Published: time.Now(), AssetName: want, AssetURL: base + want, SigURL: base + want + ".sig"}, nil
 }
 
 func truncate(s string, n int) string {

@@ -101,7 +101,7 @@
             <b>Versi {upd.latest} tersedia</b>
             <span>{upd.installNote}</span>
           {/if}
-          {#if updErr}<span style="color:var(--bad)">{updErr}</span>{/if}
+          {#if updErr || upd.error}<span style="color:var(--bad)">{updErr || upd.error}</span>{/if}
           {#if confirming}<span style="color:var(--warn)">{upd.uploading} foto sedang diunggah — akan dilanjutkan otomatis setelah aplikasi menyala lagi. Pasang sekarang?</span>{/if}
           {#if showNotes && upd.notes}<pre class="unotes">{upd.notes}</pre>{/if}
         </div>
