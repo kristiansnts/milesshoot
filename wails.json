@@ -9,5 +9,8 @@
   "author": {
     "name": "Kristian Santoso",
     "email": "epafroditus.kristian@gmail.com"
+  },
+  "info": {
+    "productVersion": "1.0.0"
   }
 }

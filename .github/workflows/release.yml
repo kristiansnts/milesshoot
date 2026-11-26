@@ -1,0 +1,184 @@
+# Rilis otomatis (macOS + Windows) saat tag "release-vX.Y.Z" di-push.
+#
+#   git tag -a release-v1.0.1 -m "Catatan rilis (tampil di aplikasi sebagai 'Yang baru')"
+#   git push origin release-v1.0.1
+#
+# Rilis yang diterbitkan memakai tag "vX.Y.Z" (aplikasi membaca versi dari nama tag itu).
+# Butuh secret UPDATE_SIGNING_KEY (isi ~/.milesshoot-release/update.key) — lihat RELEASING.md.
+name: Release
+
+on:
+  push:
+    tags: ["release-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  WAILS_VERSION: v2.17.1
+
+jobs:
+  meta:
+    name: Periksa tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${REF_NAME#release-v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Nama tag harus release-vX.Y.Z (mis. release-v1.0.1), dapat: $REF_NAME"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  build-macos:
+    name: Build macOS (arm64)
+    needs: meta
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pasang ffmpeg (untuk tes video)
+        run: brew install ffmpeg
+      - name: Tes
+        run: go test ./... -count=1
+      - name: Pasang wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Isi versi di wails.json
+        run: |
+          python3 - "$VERSION" <<'PY'
+          import json, sys
+          p = "wails.json"; d = json.load(open(p))
+          d.setdefault("info", {})["productVersion"] = sys.argv[1]
+          json.dump(d, open(p, "w"), indent=2, ensure_ascii=False)
+          PY
+      - name: Build
+        run: wails build -clean -ldflags "-X main.appVersion=$VERSION -X main.updateRepo=$GITHUB_REPOSITORY"
+      - name: Paketkan .app (helper kamera, tanda tangan ad-hoc, zip)
+        run: |
+          set -euo pipefail
+          APP=build/bin/milesshoot.app
+          test -f build/helpers/milesshoot-kamera
+          cp build/helpers/milesshoot-kamera "$APP/Contents/MacOS/milesshoot-kamera"
+          chmod +x "$APP/Contents/MacOS/milesshoot-kamera"
+          codesign --force --deep -s - "$APP"
+          codesign --verify --deep --strict "$APP"
+          mkdir dist
+          ditto -c -k --keepParent --norsrc --noextattr --noqtn "$APP" dist/milesshoot-darwin-arm64.zip
+          LIST="$(unzip -Z1 dist/milesshoot-darwin-arm64.zip)"
+          for need in milesshoot.app/Contents/MacOS/milesshoot milesshoot.app/Contents/MacOS/milesshoot-kamera milesshoot.app/Contents/Info.plist; do
+            grep -qxF "$need" <<<"$LIST" || { echo "::error::zip macOS tidak memuat $need"; exit 1; }
+          done
+          if grep -q '/\._' <<<"$LIST"; then echo "::error::zip macOS memuat file bayangan ._*"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zip-macos
+          path: dist/milesshoot-darwin-arm64.zip
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows (amd64)
+    needs: meta
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pasang wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Build (silang dari Linux)
+        run: wails build -platform windows/amd64 -ldflags "-X main.appVersion=$VERSION -X main.updateRepo=$GITHUB_REPOSITORY"
+      - name: Zip
+        run: |
+          set -euo pipefail
+          test -f build/bin/milesshoot.exe
+          mkdir dist
+          (cd build/bin && zip -q -j ../../dist/milesshoot-windows-amd64.zip milesshoot.exe)
+          [ "$(unzip -Z1 dist/milesshoot-windows-amd64.zip)" = "milesshoot.exe" ] || { echo "::error::zip Windows harus berisi tepat milesshoot.exe di tingkat atas"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zip-windows
+          path: dist/milesshoot-windows-amd64.zip
+          if-no-files-found: error
+
+  publish:
+    name: Tanda tangan & terbitkan
+    needs: [meta, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+      TRIGGER_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: zip-*
+          merge-multiple: true
+      - name: Tanda tangan & verifikasi
+        run: |
+          set -euo pipefail
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::Secret UPDATE_SIGNING_KEY belum diisi (lihat RELEASING.md)"; exit 1
+          fi
+          TAG="v$VERSION"
+          KEYFILE="$(mktemp)"; trap 'rm -f "$KEYFILE"' EXIT
+          printf '%s\n' "$SIGNING_KEY" > "$KEYFILE"
+          for z in dist/milesshoot-darwin-arm64.zip dist/milesshoot-windows-amd64.zip; do
+            go run ./cmd/relsign sign "$KEYFILE" "$TAG" "$z" >/dev/null
+            # kunci privat harus PASANGAN dari kunci publik yang tertanam di aplikasi
+            go run ./cmd/relsign verify "$TAG" "$z"
+          done
+          ls -la dist
+      - name: Terbitkan rilis
+        run: |
+          set -euo pipefail
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Rilis $TAG sudah ada"; exit 1
+          fi
+          # catatan rilis = pesan anotasi tag release-vX.Y.Z (git tag -a ... -m "...")
+          git fetch --force origin "+refs/tags/$TRIGGER_TAG:refs/tags/$TRIGGER_TAG"
+          # (tag biasa tanpa anotasi → %(contents) berisi pesan commit, jadi hanya dipakai bila tag beranotasi)
+          NOTES=""
+          if [ "$(git cat-file -t "refs/tags/$TRIGGER_TAG")" = "tag" ]; then
+            NOTES="$(git tag -l --format='%(contents)' "$TRIGGER_TAG")"
+          fi
+          [ -n "${NOTES//[[:space:]]/}" ] || NOTES="Rilis $TAG"
+          gh release create "$TAG" \
+            dist/milesshoot-darwin-arm64.zip dist/milesshoot-darwin-arm64.zip.sig \
+            dist/milesshoot-windows-amd64.zip dist/milesshoot-windows-amd64.zip.sig \
+            --target "$GITHUB_SHA" --title "$TAG" --notes "$NOTES"

@@ -10,6 +10,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# wails & alat Go lain dipasang di $(go env GOPATH)/bin, yang sering tidak ada di PATH
+export PATH="$PATH:$(go env GOPATH 2>/dev/null)/bin"
+command -v wails >/dev/null || { echo "wails tidak ditemukan — pasang: go install github.com/wailsapp/wails/v2/cmd/wails@latest"; exit 1; }
+
 VERSION="${1:-}"; NOTES="${2:-}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "pemakaian: $0 X.Y.Z [catatan]  (mis. 1.1.0)"; exit 1; }
 TAG="v$VERSION"
@@ -55,15 +59,27 @@ sign() {  # $1 = zip: tanda tangani, lalu pastikan kunci privat ini PASANGAN dar
 
 echo "==> build macOS $TAG ($REPO)"
 wails build -clean -ldflags "$LDFLAGS"
-ditto -c -k --keepParent build/bin/milesshoot.app "dist/$ASSET"
-unzip -l "dist/$ASSET" | grep -q 'milesshoot.app/Contents/MacOS/milesshoot' || { echo "zip macOS tidak berisi app yang benar"; exit 1; }
+APP=build/bin/milesshoot.app
+# -clean menghapus isi build/bin, jadi program pembantu kamera kabel harus dimasukkan lagi ke dalam .app
+[ -f build/helpers/milesshoot-kamera ] || { echo "build/helpers/milesshoot-kamera tidak ada"; exit 1; }
+cp build/helpers/milesshoot-kamera "$APP/Contents/MacOS/milesshoot-kamera"
+chmod +x "$APP/Contents/MacOS/milesshoot-kamera"
+codesign --force --deep -s - "$APP"   # tanda tangan ad-hoc ulang karena isi bundle berubah
+codesign --verify --deep --strict "$APP" || { echo "tanda tangan .app tidak valid"; exit 1; }
+# --norsrc/--noextattr: jangan sertakan file bayangan "._*" di dalam zip
+ditto -c -k --keepParent --norsrc --noextattr --noqtn "$APP" "dist/$ASSET"
+LIST="$(unzip -Z1 "dist/$ASSET")"   # ke variabel dulu: "unzip | grep -q" bisa gagal karena pipefail + SIGPIPE
+for need in milesshoot.app/Contents/MacOS/milesshoot milesshoot.app/Contents/MacOS/milesshoot-kamera milesshoot.app/Contents/Info.plist; do
+  grep -qxF "$need" <<<"$LIST" || { echo "zip macOS tidak memuat $need"; exit 1; }
+done
+if grep -q '/\._' <<<"$LIST"; then echo "zip macOS memuat file bayangan ._*"; exit 1; fi
 sign "dist/$ASSET"
 
 echo "==> build Windows (amd64) $TAG"
 wails build -platform windows/amd64 -ldflags "$LDFLAGS"   # tanpa -clean: jangan hapus build macOS
 [ -f build/bin/milesshoot.exe ] || { echo "milesshoot.exe tidak terbentuk"; exit 1; }
 (cd build/bin && zip -q -j "../../dist/$WIN_ASSET" milesshoot.exe)
-unzip -l "dist/$WIN_ASSET" | grep -q ' milesshoot.exe$' || { echo "zip Windows tidak berisi milesshoot.exe di tingkat atas"; exit 1; }
+[ "$(unzip -Z1 "dist/$WIN_ASSET")" = "milesshoot.exe" ] || { echo "zip Windows harus berisi tepat milesshoot.exe di tingkat atas"; exit 1; }
 sign "dist/$WIN_ASSET"
 
 echo "==> terbitkan $TAG di $REPO"

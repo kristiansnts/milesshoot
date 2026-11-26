@@ -29,7 +29,7 @@ func Extract(zipPath, dest string) error {
 	var total int64
 	for _, f := range zr.File {
 		name := f.Name
-		if strings.HasPrefix(name, "__MACOSX/") || strings.HasSuffix(name, ".DS_Store") {
+		if strings.HasPrefix(name, "__MACOSX/") || strings.HasSuffix(name, ".DS_Store") || strings.HasPrefix(filepath.Base(name), "._") {
 			continue
 		}
 		if f.Mode()&os.ModeSymlink != 0 {

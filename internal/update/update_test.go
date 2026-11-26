@@ -213,7 +213,7 @@ func TestDownloadRejectsInsecureURL(t *testing.T) {
 func TestExtractSafe(t *testing.T) {
 	dir := t.TempDir()
 	zp := filepath.Join(dir, "ok.zip")
-	os.WriteFile(zp, makeZip(t, map[string]string{"A.app/Contents/MacOS/x": "isi", "__MACOSX/junk": "x"}), 0o644)
+	os.WriteFile(zp, makeZip(t, map[string]string{"A.app/Contents/MacOS/x": "isi", "__MACOSX/junk": "x", "A.app/Contents/MacOS/._x": "bayangan"}), 0o644)
 	out := filepath.Join(dir, "out")
 	if err := Extract(zp, out); err != nil {
 		t.Fatal(err)
@@ -223,6 +223,9 @@ func TestExtractSafe(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(out, "__MACOSX")); err == nil {
 		t.Error("__MACOSX harus dilewati")
+	}
+	if _, err := os.Stat(filepath.Join(out, "A.app/Contents/MacOS/._x")); err == nil {
+		t.Error("file bayangan ._* harus dilewati")
 	}
 	if app, err := FindApp(out); err != nil || filepath.Base(app) != "A.app" {
 		t.Fatalf("FindApp: %s %v", app, err)
@@ -279,5 +282,23 @@ func TestFindPayloadWindows(t *testing.T) {
 	}
 	if _, err := FindPayload(out, "windows"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Repo yang diganti namanya: GitHub menjawab 301 ke /repositories/<id>/...; harus tetap berhasil.
+func TestCheckFollowsRepoRenameRedirect(t *testing.T) {
+	f := newFake(t, "v1.1.0")
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/lama/nama/releases/latest", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/repos/o/r/releases/latest", http.StatusMovedPermanently)
+	})
+	mux.Handle("/", f.srv.Config.Handler)
+	front := httptest.NewServer(mux)
+	defer front.Close()
+	c := f.client()
+	c.Repo, c.APIBase = "lama/nama", front.URL
+	rel, err := c.Check(context.Background(), "1.0.0")
+	if err != nil || rel == nil || rel.Version != "1.1.0" {
+		t.Fatalf("pengalihan 301 harus diikuti: %+v %v", rel, err)
 	}
 }

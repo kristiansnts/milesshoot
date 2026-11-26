@@ -44,3 +44,35 @@ Nomor versi harus `X.Y.Z` dan **lebih besar** dari rilis sebelumnya. Rilis berta
   (masuk PATH) agar unggah video & Video → Foto jalan.
 - Unduhan lewat Go tidak diberi atribut karantina, jadi pembaruan tidak memicu peringatan Gatekeeper.
   Pemasangan **pertama** dari zip yang diunduh lewat browser tetap kena Gatekeeper (aplikasi hanya ber-ad-hoc-sign).
+
+
+## Rilis otomatis lewat GitHub Actions
+
+Alternatif dari `scripts/release.sh`: workflow `.github/workflows/release.yml` membangun macOS + Windows,
+menandatangani, dan menerbitkan rilis begitu tag `release-vX.Y.Z` di-push.
+
+```
+git tag -a release-v1.0.1 -m "Perbaikan Video → Foto, log lebih lengkap"   # pesan tag = catatan rilis
+git push origin release-v1.0.1
+```
+
+- Rilis yang terbit bertag **`v1.0.1`** (bukan `release-v1.0.1`): aplikasi membaca nomor versi dari nama tag.
+  Tag `release-v…` hanya pemicu dan boleh dibiarkan.
+- Catatan rilis diambil dari **pesan tag beranotasi** (`git tag -a … -m`). Tag biasa → "Rilis vX.Y.Z".
+- Nama tag selain `release-vX.Y.Z` (mis. `release-v1.0`) membuat workflow berhenti dengan pesan jelas.
+- Urutan: tes (macOS) → build macOS & Windows (paralel) → tanda tangan & verifikasi → terbitkan. Bila ada
+  satu langkah gagal, **tidak ada rilis** yang terbit.
+
+### Persiapan satu kali: secret kunci penanda tangan
+
+Workflow butuh kunci privat untuk menandatangani. Simpan sebagai secret repo (nilainya tidak bisa dibaca lagi
+dari GitHub setelah disimpan):
+
+```
+gh secret set UPDATE_SIGNING_KEY < ~/.milesshoot-release/update.key
+```
+
+Konsekuensinya: kunci privat kini juga ada di GitHub. Siapa pun yang boleh mendorong tag ke repo ini bisa
+memicu rilis bertanda tangan. Batasi akses tulis ke repo, dan pertimbangkan *tag protection rule*
+untuk pola `release-v*` (Settings → Rules). Kalau tidak mau kunci ada di GitHub, tetap pakai `scripts/release.sh`.
+Cadangan kunci di password manager tetap perlu.
