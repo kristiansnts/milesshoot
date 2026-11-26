@@ -59,7 +59,8 @@ jobs:
       - name: Pasang ffmpeg (untuk tes video)
         run: brew install ffmpeg
       - name: Tes
-        run: go test ./... -count=1
+        # paket utama (main.go) meng-embed frontend/dist yang belum ada sebelum build, dan tidak punya tes
+        run: go test ./internal/... ./cmd/... -count=1
       - name: Pasang wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
       - name: Isi versi di wails.json
@@ -81,7 +82,7 @@ jobs:
           chmod +x "$APP/Contents/MacOS/milesshoot-kamera"
           codesign --force --deep -s - "$APP"
           codesign --verify --deep --strict "$APP"
-          mkdir dist
+          rm -rf dist && mkdir dist
           ditto -c -k --keepParent --norsrc --noextattr --noqtn "$APP" dist/milesshoot-darwin-arm64.zip
           LIST="$(unzip -Z1 dist/milesshoot-darwin-arm64.zip)"
           for need in milesshoot.app/Contents/MacOS/milesshoot milesshoot.app/Contents/MacOS/milesshoot-kamera milesshoot.app/Contents/Info.plist; do
@@ -118,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f build/bin/milesshoot.exe
-          mkdir dist
+          rm -rf dist && mkdir dist
           (cd build/bin && zip -q -j ../../dist/milesshoot-windows-amd64.zip milesshoot.exe)
           [ "$(unzip -Z1 dist/milesshoot-windows-amd64.zip)" = "milesshoot.exe" ] || { echo "::error::zip Windows harus berisi tepat milesshoot.exe di tingkat atas"; exit 1; }
       - uses: actions/upload-artifact@v4
