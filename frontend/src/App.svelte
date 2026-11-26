@@ -27,12 +27,12 @@
 
   let updErr = "", showNotes = false;
   $: upd = $updateInfo;
-  async function installUpdate() {
+  // Konfirmasi di dalam layar: confirm()/prompt() bawaan browser dibungkam di webview desktop Wails.
+  let confirming = false;
+  async function installUpdate(force = false) {
     updErr = "";
-    const n = upd ? upd.uploading : 0;
-    const msg = "Pasang versi " + upd.latest + " dan mulai ulang sekarang?" +
-      (n > 0 ? "\n\n" + n + " foto sedang diunggah — akan dilanjutkan otomatis setelah aplikasi menyala lagi." : "");
-    if (!confirm(msg)) return;
+    if (!force && upd && upd.uploading > 0) { confirming = true; return; } // ada unggahan berjalan → minta konfirmasi dulu
+    confirming = false;
     try { await api.updateInstall(); } catch (e) { updErr = String(e); }
   }
 
@@ -102,10 +102,16 @@
             <span>{upd.installNote}</span>
           {/if}
           {#if updErr}<span style="color:var(--bad)">{updErr}</span>{/if}
+          {#if confirming}<span style="color:var(--warn)">{upd.uploading} foto sedang diunggah — akan dilanjutkan otomatis setelah aplikasi menyala lagi. Pasang sekarang?</span>{/if}
           {#if showNotes && upd.notes}<pre class="unotes">{upd.notes}</pre>{/if}
         </div>
         {#if upd.notes && !upd.downloading}<button class="btn s sm" on:click={() => (showNotes = !showNotes)}>{showNotes ? "Tutup catatan" : "Yang baru"}</button>{/if}
-        {#if upd.ready}<button class="btn p sm" on:click={installUpdate} disabled={upd.installing}>{upd.installing ? "Memasang…" : "Pasang & mulai ulang"}</button>{/if}
+        {#if upd.ready && confirming}
+          <button class="btn s sm" on:click={() => (confirming = false)}>Batal</button>
+          <button class="btn p sm" on:click={() => installUpdate(true)} disabled={upd.installing}>Ya, pasang</button>
+        {:else if upd.ready}
+          <button class="btn p sm" on:click={() => installUpdate()} disabled={upd.installing}>{upd.installing ? "Memasang…" : "Pasang & mulai ulang"}</button>
+        {/if}
       </div>
     {/if}
 

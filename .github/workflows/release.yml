@@ -80,12 +80,22 @@ jobs:
           test -f build/helpers/milesshoot-kamera
           cp build/helpers/milesshoot-kamera "$APP/Contents/MacOS/milesshoot-kamera"
           chmod +x "$APP/Contents/MacOS/milesshoot-kamera"
+          # ffmpeg statis arm64 ditanam di bundel (dicari app di samping executable), supaya client tak perlu brew.
+          # Harus statis: ffmpeg hasil `brew install` bergantung pada dylib Homebrew dan gagal di Mac client.
+          curl -fsSL -o ffmpeg.zip "https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/release/ffmpeg.zip"
+          shasum -a 256 ffmpeg.zip
+          unzip -q -o ffmpeg.zip ffmpeg -d "$APP/Contents/MacOS"
+          chmod +x "$APP/Contents/MacOS/ffmpeg"
+          if otool -L "$APP/Contents/MacOS/ffmpeg" | grep -E '/(opt/homebrew|usr/local)/'; then
+            echo "::error::ffmpeg bergantung pada dylib non-sistem — harus build statis"; exit 1
+          fi
+          "$APP/Contents/MacOS/ffmpeg" -version | head -1
           codesign --force --deep -s - "$APP"
           codesign --verify --deep --strict "$APP"
           rm -rf dist && mkdir dist
           ditto -c -k --keepParent --norsrc --noextattr --noqtn "$APP" dist/milesshoot-darwin-arm64.zip
           LIST="$(unzip -Z1 dist/milesshoot-darwin-arm64.zip)"
-          for need in milesshoot.app/Contents/MacOS/milesshoot milesshoot.app/Contents/MacOS/milesshoot-kamera milesshoot.app/Contents/Info.plist; do
+          for need in milesshoot.app/Contents/MacOS/milesshoot milesshoot.app/Contents/MacOS/milesshoot-kamera milesshoot.app/Contents/MacOS/ffmpeg milesshoot.app/Contents/Info.plist; do
             grep -qxF "$need" <<<"$LIST" || { echo "::error::zip macOS tidak memuat $need"; exit 1; }
           done
           if grep -q '/\._' <<<"$LIST"; then echo "::error::zip macOS memuat file bayangan ._*"; exit 1; fi
@@ -113,8 +123,16 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Pasang wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+      - name: Unduh ffmpeg Windows (ditanam di exe supaya client tak perlu memasang)
+        run: |
+          set -euo pipefail
+          FF_VER=7.1.1
+          curl -fsSL -o ffmpeg.zip "https://github.com/GyanD/codexffmpeg/releases/download/$FF_VER/ffmpeg-$FF_VER-essentials_build.zip"
+          unzip -q -j ffmpeg.zip "*/bin/ffmpeg.exe" -d internal/video/ffmpeg_bin
+          test -s internal/video/ffmpeg_bin/ffmpeg.exe
+          sha256sum ffmpeg.zip
       - name: Build (silang dari Linux)
-        run: wails build -platform windows/amd64 -ldflags "-X main.appVersion=$VERSION -X main.updateRepo=$GITHUB_REPOSITORY"
+        run: wails build -platform windows/amd64 -tags ffmpegembed -ldflags "-X main.appVersion=$VERSION -X main.updateRepo=$GITHUB_REPOSITORY"
       - name: Zip
         run: |
           set -euo pipefail

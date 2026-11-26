@@ -4,3 +4,4 @@ node_modules
 frontend/dist
 .DS_Store
 frontend/package.json.md5
+internal/video/ffmpeg_bin

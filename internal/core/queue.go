@@ -765,7 +765,7 @@ func (q *UploadQueue) handleError(job Record, kind string, cfg Settings, err err
 	}
 
 	// Penolakan permanen berturut sama = masalah sesi → kembalikan & jeda.
-	if permanent && ue != nil && !ue.Missing {
+	if permanent && ue != nil && !ue.Missing && ue.Status != 0 { // Status 0 = gagal lokal (mis. ffmpeg tak ada), bukan penolakan FotoYu
 		key := fmt.Sprintf("%d|%s", status, cut(msg, 120))
 		q.mu.Lock()
 		if q.rejectKey == key && now-q.rejectAt < 10*60000 {

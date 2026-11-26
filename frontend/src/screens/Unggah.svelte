@@ -11,8 +11,26 @@
   $: acct = st && st.account;
   $: fyOn = acct && acct.loggedIn;
   $: c = (st && st.counts) || { done: 0, pending: 0, uploading: 0, failed: 0, duplicate: 0 };
-  $: denom = c.done + c.pending + c.uploading + c.failed;
-  $: pct = denom > 0 ? Math.round((c.done / denom) * 100) : 0;
+  // Reset tampilan: simpan angka dasar saat tombol Reset ditekan, lalu kurangkan. Hanya
+  // tampilan — riwayat/antrean tidak disentuh (riwayat dipakai untuk deteksi duplikat).
+  const BASE_KEY = "fotonaik.unggah.base";
+  const loadBase = () => {
+    try { return JSON.parse(localStorage.getItem(BASE_KEY)) || { done: 0, failed: 0, duplicate: 0 }; }
+    catch { return { done: 0, failed: 0, duplicate: 0 }; }
+  };
+  let base = loadBase();
+  $: shown = {
+    done: Math.max(0, c.done - base.done),
+    failed: Math.max(0, c.failed - base.failed),
+    duplicate: Math.max(0, c.duplicate - base.duplicate),
+  };
+  function resetStats() {
+    base = { done: c.done, failed: c.failed, duplicate: c.duplicate };
+    try { localStorage.setItem(BASE_KEY, JSON.stringify(base)); } catch {}
+    peak = { antre: 1, gagal: 1, permin: 1, mbps: 1, eta: 1 };
+  }
+  $: denom = shown.done + c.pending + c.uploading + shown.failed;
+  $: pct = denom > 0 ? Math.round((shown.done / denom) * 100) : 0;
   $: circ = 2 * Math.PI * 42;
   $: paused = st && st.paused;
   $: ev = (cfg && cfg.event) || {};
@@ -28,7 +46,7 @@
   // (MAS EDY menyebutnya "peak") — supaya ring selalu punya arti meski tanpa batas atas tetap.
   let peak = { antre: 1, gagal: 1, permin: 1, mbps: 1, eta: 1 };
   $: peak.antre = Math.max(peak.antre, antreCount);
-  $: peak.gagal = Math.max(peak.gagal, c.failed);
+  $: peak.gagal = Math.max(peak.gagal, shown.failed);
   $: peak.permin = Math.max(peak.permin, speed.perMin);
   $: peak.mbps = Math.max(peak.mbps, speed.mbps);
   $: peak.eta = speed.etaSec > 0 ? Math.max(peak.eta, speed.etaSec) : peak.eta;
@@ -53,9 +71,9 @@
     : "Belum ada folder sumber dipilih.";
 
   $: rings = [
-    { label: "terunggah", text: c.done.toLocaleString("id-ID"), unit: "file", color: "var(--good)", pct },
+    { label: "terunggah", text: shown.done.toLocaleString("id-ID"), unit: "file", color: "var(--good)", pct },
     { label: "antre", text: antreCount.toLocaleString("id-ID"), unit: "file", color: "var(--warn)", pct: ringPct(antreCount, peak.antre) },
-    { label: "gagal", text: String(c.failed), unit: "file", color: "var(--bad)", pct: ringPct(c.failed, peak.gagal) },
+    { label: "gagal", text: String(shown.failed), unit: "file", color: "var(--bad)", pct: ringPct(shown.failed, peak.gagal) },
     { label: "foto / menit", text: String(speed.perMin), unit: "per menit", color: "var(--ci-but)", pct: ringPct(speed.perMin, peak.permin) },
     { label: "kecepatan", text: speed.mbps.toLocaleString("id-ID"), unit: "Mbps", color: "var(--accent)", pct: ringPct(speed.mbps, peak.mbps) },
     { label: "sisa waktu", text: fmtEta(speed.etaSec), unit: "", color: "var(--ci-lil)", pct: speed.etaSec < 0 ? 0 : 100 - ringPct(speed.etaSec, peak.eta) },
@@ -356,7 +374,10 @@
       </div>
     {/each}
   </div>
-  <div class="muted" style="font-size:11.5px;padding:0 18px 16px">{c.duplicate} duplikat dilewati sesi ini</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px 16px">
+    <span class="muted" style="font-size:11.5px">{shown.duplicate} duplikat dilewati sesi ini</span>
+    <button class="btn s sm" on:click={resetStats} title="Nolkan angka terunggah, gagal & duplikat (riwayat tidak dihapus)">Reset</button>
+  </div>
 </div>
 
 <!-- ============ unggah / jeda + akun / saringan nomor ============ -->

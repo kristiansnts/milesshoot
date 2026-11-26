@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -48,7 +49,21 @@ func findFfmpeg() string {
 		if runtime.GOOS == "windows" {
 			name = "ffmpeg.exe"
 		}
+		// 1) di samping aplikasi (paket rilis lama / pasang manual)
+		if self, err := os.Executable(); err == nil {
+			c := filepath.Join(filepath.Dir(self), name)
+			if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+				ffmpegPath = c
+				return
+			}
+		}
+		// 2) ffmpeg sistem
 		if p, err := exec.LookPath(name); err == nil {
+			ffmpegPath = p
+			return
+		}
+		// 3) ffmpeg yang ditanam di dalam aplikasi (rilis Windows)
+		if p := extractEmbeddedFfmpeg(name); p != "" {
 			ffmpegPath = p
 			return
 		}
@@ -210,7 +225,7 @@ func lastLine(s string) string {
 // sebelum di-zip, lewat core.GradeJPEG supaya tak perlu pecah enkapsulasi loadLUT/applyLUT).
 func Prepare(path string, orientation string, frames int, lut core.LUT) (core.PreparedVideo, error) {
 	if !Available() {
-		return core.PreparedVideo{}, &core.UploadError{Msg: "Upload video butuh ffmpeg (pasang ffmpeg di sistem)", Pause: true}
+		return core.PreparedVideo{}, &core.UploadError{Msg: "Upload video butuh ffmpeg (pasang ffmpeg di sistem)", Permanent: true}
 	}
 	info, err := probe(path)
 	if err != nil {
