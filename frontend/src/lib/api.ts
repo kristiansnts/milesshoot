@@ -78,6 +78,10 @@ export const api = {
   // Kamera kabel (PTP/tethering)
   usbCamState: () => desktop()?.UsbCamState?.() ?? Promise.resolve(null),
   usbCamToggle: (on: boolean) => desktop()?.UsbCamToggle?.(on) ?? Promise.resolve(null),
+  // Pembaruan otomatis (desktop saja)
+  updateState: () => desktop()?.UpdateState?.() ?? Promise.resolve(null),
+  updateCheck: () => desktop()?.UpdateCheck?.() ?? Promise.resolve(null),
+  updateInstall: () => desktop()?.UpdateInstall?.() ?? Promise.resolve(null),
   // Video → Foto (desktop saja)
   vfState: () => desktop()?.VideoPhotoState?.() ?? Promise.resolve(null),
   vfPickFiles: () => desktop()?.VideoPhotoPickFiles?.() ?? Promise.resolve(null),

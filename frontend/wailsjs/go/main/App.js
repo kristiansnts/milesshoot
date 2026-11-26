@@ -26,6 +26,10 @@ export function DeleteLUT(arg1) {
   return window['go']['main']['App']['DeleteLUT'](arg1);
 }
 
+export function DiagnosticReport() {
+  return window['go']['main']['App']['DiagnosticReport']();
+}
+
 export function FTPInfo() {
   return window['go']['main']['App']['FTPInfo']();
 }
@@ -142,6 +146,10 @@ export function RetryFailed() {
   return window['go']['main']['App']['RetryFailed']();
 }
 
+export function SaveDiagnosticReport() {
+  return window['go']['main']['App']['SaveDiagnosticReport']();
+}
+
 export function SearchTrees(arg1) {
   return window['go']['main']['App']['SearchTrees'](arg1);
 }
@@ -166,8 +174,20 @@ export function SwitchAccount(arg1) {
   return window['go']['main']['App']['SwitchAccount'](arg1);
 }
 
+export function UpdateCheck() {
+  return window['go']['main']['App']['UpdateCheck']();
+}
+
 export function UpdateConfig(arg1) {
   return window['go']['main']['App']['UpdateConfig'](arg1);
+}
+
+export function UpdateInstall() {
+  return window['go']['main']['App']['UpdateInstall']();
+}
+
+export function UpdateState() {
+  return window['go']['main']['App']['UpdateState']();
 }
 
 export function UsbCamState() {

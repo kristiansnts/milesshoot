@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { status, config } from "../lib/stores";
+  import { status, config, updateInfo } from "../lib/stores";
   import { api, isDesktop } from "../lib/api";
 
   export let tab = "sumber";
@@ -20,6 +20,11 @@
   $: tree = ev.tree;
   $: par = (cfg && cfg.parity) || { mode: "all" };
 
+  $: upd = $updateInfo;
+  async function checkUpdate() {
+    const u = await api.updateCheck();
+    if (u) updateInfo.set(u);
+  }
   async function patch(obj) {
     const c = await api.updateConfig(JSON.stringify(obj));
     if (c) config.set(c);
@@ -407,6 +412,31 @@
 
   <!-- ============ OPSI ============ -->
   {#if tab === "opsi"}
+    <div class="panel">
+      <div class="ph"><h3>Versi &amp; pembaruan</h3><span class="pc">v{upd ? upd.current : "…"}</span></div>
+      <div class="row">
+        <div class="oi">
+          <b>Status</b>
+          <span>
+            {#if !upd}memuat…
+            {:else if !upd.configured}Pembaruan belum diaktifkan di build ini
+            {:else if upd.checking}Memeriksa…
+            {:else if upd.downloading}Mengunduh v{upd.latest}… {upd.pct}%
+            {:else if upd.ready}Versi {upd.latest} siap dipasang (tombol di bagian atas layar)
+            {:else if upd.available}Versi {upd.latest} tersedia{upd.installNote ? " — " + upd.installNote : ""}
+            {:else if upd.error}<span style="color:var(--bad)">{upd.error}</span>
+            {:else if upd.lastCheck}Sudah yang terbaru · diperiksa {new Date(upd.lastCheck).toLocaleTimeString("id-ID", { hour12: false })}
+            {:else}Belum diperiksa{/if}
+          </span>
+        </div>
+        <button class="btn s sm" on:click={checkUpdate} disabled={!upd || !upd.configured || upd.checking || upd.downloading || upd.installing}>Cek pembaruan</button>
+      </div>
+      <div class="row">
+        <div class="oi"><b>Periksa otomatis</b><span>cek & unduh pembaruan di latar belakang; dipasang hanya setelah kamu menekan tombol pasang</span></div>
+        <button class="sw" class:on={upd && upd.auto} on:click={() => patch({ autoUpdate: !(upd && upd.auto) })} aria-label="Periksa pembaruan otomatis"><i></i></button>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="ph"><h3>Unggah</h3></div>
       <div class="row">

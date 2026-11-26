@@ -5,6 +5,7 @@ export const status = writable<any>(null);
 export const config = writable<any>(null);
 export const logs = writable<any[]>([]);
 export const hires = writable<any>(null);
+export const updateInfo = writable<any>(null);
 
 // FotoTree & rentang yang sedang dilihat di layar Ranking — dipisah dari
 // FotoTree tujuan unggah (Pengaturan → Tujuan unggah) supaya bisa cek ranking

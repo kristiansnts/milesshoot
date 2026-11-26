@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
-  import { initStores, status, config, hires } from "./lib/stores";
+  import { initStores, status, config, hires, updateInfo } from "./lib/stores";
+  import { api } from "./lib/api";
   import Unggah from "./screens/Unggah.svelte";
   import Pengaturan from "./screens/Pengaturan.svelte";
   import Placeholder from "./screens/Placeholder.svelte";
@@ -12,7 +13,28 @@
   let screen = "unggah";
   let settingsTab = "sumber";
 
-  onMount(() => initStores());
+  onMount(() => {
+    initStores();
+    // Status pembaruan: panggilan lokal yang murah; lebih sering saat sedang memeriksa/mengunduh.
+    let alive = true, timer;
+    const poll = async () => {
+      try { const u = await api.updateState(); if (u) updateInfo.set(u); } catch {}
+      if (alive) timer = setTimeout(poll, $updateInfo && ($updateInfo.checking || $updateInfo.downloading) ? 800 : 5000);
+    };
+    poll();
+    return () => { alive = false; clearTimeout(timer); };
+  });
+
+  let updErr = "", showNotes = false;
+  $: upd = $updateInfo;
+  async function installUpdate() {
+    updErr = "";
+    const n = upd ? upd.uploading : 0;
+    const msg = "Pasang versi " + upd.latest + " dan mulai ulang sekarang?" +
+      (n > 0 ? "\n\n" + n + " foto sedang diunggah — akan dilanjutkan otomatis setelah aplikasi menyala lagi." : "");
+    if (!confirm(msg)) return;
+    try { await api.updateInstall(); } catch (e) { updErr = String(e); }
+  }
 
   function toggleTheme() {
     const cur = document.documentElement.getAttribute("data-theme");
@@ -66,6 +88,26 @@
       </button>
       <div class="me"><div class="ava">{avatar}</div>{acct && acct.username ? "@" + acct.username : "belum masuk"}</div>
     </header>
+
+    {#if upd && (upd.ready || upd.downloading || (upd.available && upd.installNote))}
+      <div class="updbar">
+        <div class="ut">
+          {#if upd.downloading}
+            <b>Mengunduh pembaruan v{upd.latest}… {upd.pct}%</b>
+          {:else if upd.ready}
+            <b>Versi {upd.latest} siap dipasang</b>
+            <span>Terpasang v{upd.current}. Aplikasi akan mulai ulang sebentar.</span>
+          {:else}
+            <b>Versi {upd.latest} tersedia</b>
+            <span>{upd.installNote}</span>
+          {/if}
+          {#if updErr}<span style="color:var(--bad)">{updErr}</span>{/if}
+          {#if showNotes && upd.notes}<pre class="unotes">{upd.notes}</pre>{/if}
+        </div>
+        {#if upd.notes && !upd.downloading}<button class="btn s sm" on:click={() => (showNotes = !showNotes)}>{showNotes ? "Tutup catatan" : "Yang baru"}</button>{/if}
+        {#if upd.ready}<button class="btn p sm" on:click={installUpdate} disabled={upd.installing}>{upd.installing ? "Memasang…" : "Pasang & mulai ulang"}</button>{/if}
+      </div>
+    {/if}
 
     <div class="work">
       {#if screen === "unggah"}<Unggah on:goto={(e) => { screen = e.detail.screen; settingsTab = e.detail.tab; }} />

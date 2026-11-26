@@ -250,6 +250,10 @@ h1,h2,h3{margin:0}
 .actbox svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 .actbox.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
 .actbox:disabled{opacity:.55;cursor:default}
+.updbar{display:flex;align-items:center;gap:12px;margin:12px 22px 0;padding:10px 14px;background:var(--accent-soft,var(--inset));border:1px solid var(--line);border-radius:12px}
+.updbar .ut{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.updbar .ut span{color:var(--muted);font-size:12px}
+.updbar .unotes{white-space:pre-wrap;font:inherit;font-size:12px;margin:8px 0 0;max-height:180px;overflow:auto;color:var(--muted)}
 .hero-side{flex:1;min-width:260px;display:flex;flex-direction:column;gap:10px}
 .akunwrap{position:relative}
 .akunbox{width:100%;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:13.5px}

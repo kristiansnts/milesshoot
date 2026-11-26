@@ -17,6 +17,8 @@ export function ClearFolder():Promise<core.Settings>;
 
 export function DeleteLUT(arg1:string):Promise<Array<core.LUTFile>>;
 
+export function DiagnosticReport():Promise<string>;
+
 export function FTPInfo():Promise<main.FTPInfo>;
 
 export function Fee(arg1:number,arg2:string):Promise<fotoyu.FeeResult>;
@@ -75,6 +77,8 @@ export function Resume():Promise<void>;
 
 export function RetryFailed():Promise<void>;
 
+export function SaveDiagnosticReport():Promise<string>;
+
 export function SearchTrees(arg1:string):Promise<Array<fotoyu.TreeResult>>;
 
 export function SelectTree(arg1:core.Tree):Promise<core.Settings>;
@@ -87,7 +91,13 @@ export function Storage():Promise<fotoyu.StorageInfo>;
 
 export function SwitchAccount(arg1:string):Promise<fotoyu.SessionInfo>;
 
+export function UpdateCheck():Promise<main.UpdateInfo>;
+
 export function UpdateConfig(arg1:string):Promise<core.Settings>;
+
+export function UpdateInstall():Promise<void>;
+
+export function UpdateState():Promise<main.UpdateInfo>;
 
 export function UsbCamState():Promise<usbcam.State>;
 

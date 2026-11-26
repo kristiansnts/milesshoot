@@ -131,7 +131,8 @@ type Settings struct {
 	Watermark         Watermark   `json:"watermark"`
 	Presets           []Preset    `json:"presets"`
 	UsbCam            UsbCam      `json:"usbCam"`
-	Debug             bool        `json:"debug"` // catat detail (tiap perintah FTP dll) ke log
+	AutoUpdate        bool        `json:"autoUpdate"` // periksa & unduh pembaruan otomatis
+	Debug             bool        `json:"debug"`      // catat detail (tiap perintah FTP dll) ke log
 	ScanIntervalSec   int         `json:"scanIntervalSec"`
 }
 
@@ -148,6 +149,7 @@ func defaults(dataDir string) Settings {
 		Event:             Event{Price: 15000, Nicknames: []string{}},
 		AutoUpload:        true,
 		UploadOrder:       "newest",
+		AutoUpdate:        true,
 		Theme:             "dark",
 		LUT:               LUT{Strength: 100},
 		FTP:               FTP{Enabled: true, Port: 21, User: "masedy"},

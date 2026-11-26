@@ -62,6 +62,7 @@ func (a *App) logStartup() {
 	a.eng.Log("info", fmt.Sprintf("===== milesshoot v%s dimulai (%s) =====", appVersion, buildRevision()))
 	a.eng.Log("info", fmt.Sprintf("Sistem: %s/%s · %d CPU · data: %s", runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), a.eng.Cfg.DataDir()))
 	a.eng.Log("info", "ffmpeg: "+ffmpegLine())
+	a.eng.Log("info", fmt.Sprintf("Pembaruan otomatis: repo=%q aktif=%v", updateRepo, a.eng.Cfg.Get().AutoUpdate))
 	if !video.Available() {
 		a.eng.Log("warn", "ffmpeg tidak ada — video tidak bisa diunggah dan Video → Foto tidak jalan")
 	}
@@ -106,6 +107,16 @@ func (a *App) DiagnosticReport() string {
 	if js, err := json.MarshalIndent(a.eng.Cfg.Get(), "", "  "); err == nil {
 		w("%s", js)
 	}
+
+	sec("PEMBARUAN")
+	u := a.UpdateState()
+	w("Terpasang=v%s repo=%q otomatis=%v diperiksa=%s", u.Current, updateRepo, u.Auto, func() string {
+		if u.LastCheck == 0 {
+			return "belum"
+		}
+		return time.UnixMilli(u.LastCheck).Format("2006-01-02 15:04:05")
+	}())
+	w("Tersedia=%v terbaru=%q siap=%v bisaPasang=%v galat=%q catatan=%q", u.Available, u.Latest, u.Ready, u.CanInstall, u.Error, u.InstallNote)
 
 	sec("VIDEO → FOTO")
 	vf := a.vfSnapshot()

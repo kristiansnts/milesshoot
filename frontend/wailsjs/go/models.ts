@@ -589,6 +589,7 @@ export namespace core {
 	    watermark: Watermark;
 	    presets: Preset[];
 	    usbCam: UsbCam;
+	    autoUpdate: boolean;
 	    debug: boolean;
 	    scanIntervalSec: number;
 	
@@ -620,6 +621,7 @@ export namespace core {
 	        this.watermark = this.convertValues(source["watermark"], Watermark);
 	        this.presets = this.convertValues(source["presets"], Preset);
 	        this.usbCam = this.convertValues(source["usbCam"], UsbCam);
+	        this.autoUpdate = source["autoUpdate"];
 	        this.debug = source["debug"];
 	        this.scanIntervalSec = source["scanIntervalSec"];
 	    }
@@ -937,6 +939,50 @@ export namespace main {
 	        this.lastFile = source["lastFile"];
 	        this.lastAt = source["lastAt"];
 	        this.pass = source["pass"];
+	    }
+	}
+	export class UpdateInfo {
+	    current: string;
+	    configured: boolean;
+	    auto: boolean;
+	    checking: boolean;
+	    downloading: boolean;
+	    pct: number;
+	    available: boolean;
+	    ready: boolean;
+	    installing: boolean;
+	    latest: string;
+	    notes: string;
+	    published: number;
+	    lastCheck: number;
+	    error: string;
+	    canInstall: boolean;
+	    installNote: string;
+	    uploading: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.current = source["current"];
+	        this.configured = source["configured"];
+	        this.auto = source["auto"];
+	        this.checking = source["checking"];
+	        this.downloading = source["downloading"];
+	        this.pct = source["pct"];
+	        this.available = source["available"];
+	        this.ready = source["ready"];
+	        this.installing = source["installing"];
+	        this.latest = source["latest"];
+	        this.notes = source["notes"];
+	        this.published = source["published"];
+	        this.lastCheck = source["lastCheck"];
+	        this.error = source["error"];
+	        this.canInstall = source["canInstall"];
+	        this.installNote = source["installNote"];
+	        this.uploading = source["uploading"];
 	    }
 	}
 	export class VFItem {

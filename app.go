@@ -27,7 +27,8 @@ type App struct {
 	logs   *core.FileLogger
 	cam    *usbcam.Cam
 	drives *usbcam.DriveWatcher
-	vf     vfJob // pekerjaan Video → Foto (vidfoto_app.go)
+	vf     vfJob  // pekerjaan Video → Foto (vidfoto_app.go)
+	upd    updJob // pembaruan otomatis (update_app.go)
 }
 
 func NewApp(eng *core.Engine, phonePort int, ftpSrv *ftp.Server, logs *core.FileLogger,
@@ -40,6 +41,7 @@ func (a *App) startup(ctx context.Context) {
 	a.eng.AddEmitter(&wailsEmitter{ctx: ctx})
 	video.Logf = a.eng.Log
 	a.logStartup()
+	a.startUpdates(ctx)
 	a.eng.Start()
 	if a.ftp != nil {
 		a.ftp.Start()
