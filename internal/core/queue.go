@@ -570,7 +570,7 @@ func (q *UploadQueue) run(job Record) {
 		if kind == "video" {
 			suffix = " (video)"
 		}
-		q.emit.Log("ok", "Terunggah: "+job.Name+suffix)
+		q.emit.Log("ok", "Terunggah: "+job.Name+suffix+uploadedDetail(cfg, res, meta.Price, bytesOut))
 		return
 	}
 

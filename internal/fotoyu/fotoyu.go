@@ -625,6 +625,14 @@ func (c *Client) UploadPhoto(p PhotoUpload) (Result, error) {
 		r.RemoteID = created[0].ContentID
 		r.Quality = created[0].Quality
 	}
+	raw := snip(string(env2.Result), 300)
+	Logf("info", fmt.Sprintf("[FotoYu] %s → akun @%s · tag=%v · harga=%d · balasan=%s", p.Title, r.Account, tagIDs(p.Tree), p.Price, raw))
+	if r.RemoteID == "" {
+		// 2xx tapi tanpa content_id: foto hampir pasti TIDAK tersimpan di FotoYu. Jangan dianggap sukses
+		// (kalau ternyata tersimpan, percobaan ulang akan dikenali sebagai duplikat milik akun ini).
+		Logf("error", "[FotoYu] "+p.Title+": balasan sukses tanpa content_id — dianggap gagal & akan dicoba lagi")
+		return Result{}, &Error{Status: 502, Message: "FotoYu menjawab sukses tapi tidak memberi ID konten — foto kemungkinan tidak tersimpan", Detail: raw}
+	}
 	return r, nil
 }
 
@@ -708,6 +716,11 @@ func (c *Client) UploadVideo(v VideoUpload) (Result, error) {
 		if r.RemoteID == "" {
 			r.RemoteID = created[0].ID
 		}
+	}
+	raw := snip(string(env2.Result), 300)
+	Logf("info", fmt.Sprintf("[FotoYu] video %s → akun @%s · tag=%v · harga=%d · balasan=%s", v.Title, r.Account, tagIDs(v.Tree), v.Price, raw))
+	if r.RemoteID == "" {
+		Logf("warn", "[FotoYu] video "+v.Title+": balasan sukses tanpa ID konten — periksa di FotoYu apakah videonya masuk")
 	}
 	return r, nil
 }

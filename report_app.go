@@ -70,6 +70,7 @@ func (a *App) logStartup() {
 		c.Destination, c.AutoUpload, c.Parity.Mode, c.Video.Enabled, c.IncludeSubfolders, c.Compress.Size, c.Performance, c.WatchFolder))
 	acct := a.eng.Fotoyu.Session()
 	a.eng.Log("info", fmt.Sprintf("Akun FotoYu: masuk=%v · @%s · %d akun tersimpan", acct.LoggedIn, acct.Username, len(a.eng.Fotoyu.Accounts())))
+	a.eng.Log("info", "Tujuan unggah: "+core.DestSummary(c, acct.Username))
 }
 
 // DiagnosticReport menyusun satu teks lengkap untuk dikirim saat minta bantuan:
@@ -94,6 +95,9 @@ func (a *App) DiagnosticReport() string {
 		st.Counts.Total, st.Counts.Pending, st.Counts.Uploading, st.Counts.Done, st.Counts.Failed, st.Counts.Duplicate)
 	w("Kecepatan: %d foto/menit", st.PerMinute)
 	w("Pemindai : folder=%q media=%d dikenal=%d menunggu=%d raw=%d", st.Scan.Folder, st.Scan.Media, st.Scan.Known, st.Scan.Waiting, st.Scan.Raw)
+
+	sec("TUJUAN UNGGAH")
+	w("%s", core.DestSummary(a.eng.Cfg.Get(), st.Account.Username))
 
 	sec("AKUN FOTOYU (tanpa token & password)")
 	for _, ac := range a.eng.Fotoyu.Accounts() {
@@ -125,8 +129,26 @@ func (a *App) DiagnosticReport() string {
 		w("- %s → %d foto, diperbesar=%d, mirip=%d, dilewati=%v, galat=%q", filepath.Base(it.Video), len(it.Files), it.Enlarged, it.Similar, it.Skipped, it.Error)
 	}
 
-	sec("FOTO BERMASALAH (terbaru, maks 25)")
 	recs := a.eng.Store.All()
+	sec("UNGGAHAN SELESAI TERAKHIR (maks 10) — ke mana & ID di FotoYu")
+	var done []core.Record
+	for _, r := range recs {
+		if r.Status == "done" {
+			done = append(done, r)
+		}
+	}
+	sort.Slice(done, func(i, j int) bool { return done[i].DoneAt > done[j].DoneAt })
+	if len(done) > 10 {
+		done = done[:10]
+	}
+	if len(done) == 0 {
+		w("(belum ada)")
+	}
+	for _, r := range done {
+		w("- %s · %s · %s · akun=@%s · pohon=%q · Rp%d · id=%q · %dKB", time.UnixMilli(r.DoneAt).Format("2006-01-02 15:04:05"), r.Name, r.Destination, r.Account, r.Tree, r.Price, r.RemoteID, r.BytesOut/1024)
+	}
+
+	sec("FOTO BERMASALAH (terbaru, maks 25)")
 	var bad []core.Record
 	for _, r := range recs {
 		if r.Status == "failed" || (r.Status == "pending" && r.Error != "") {

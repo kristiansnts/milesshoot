@@ -40,6 +40,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.eng.AddEmitter(&wailsEmitter{ctx: ctx})
 	video.Logf = a.eng.Log
+	fotoyu.Logf = a.eng.Log
 	a.logStartup()
 	a.startUpdates(ctx)
 	a.eng.Start()
@@ -88,7 +89,11 @@ func (a *App) Status() core.Status      { return a.eng.Status() }
 func (a *App) GetConfig() core.Settings { return a.eng.Cfg.Get() }
 
 func (a *App) UpdateConfig(patch string) core.Settings {
+	before := a.eng.Cfg.Get()
 	s, _ := a.eng.Cfg.Update([]byte(patch))
+	if s.Destination != before.Destination || s.Event.Price != before.Event.Price || s.Event.VideoPrice != before.Event.VideoPrice {
+		a.eng.Log("info", "Tujuan unggah diubah: "+core.DestSummary(s, a.eng.Fotoyu.ActiveUsername()))
+	}
 	a.applySideEffects()
 	a.eng.BroadcastStatus()
 	return s
@@ -463,6 +468,7 @@ func (a *App) SearchTrees(name string) ([]fotoyu.TreeResult, error) {
 
 func (a *App) SelectTree(t core.Tree) core.Settings {
 	a.eng.Cfg.Set(func(s *core.Settings) { s.Event.Tree = &t })
+	a.eng.Log("info", "FotoTree dipilih: "+core.DestSummary(a.eng.Cfg.Get(), a.eng.Fotoyu.ActiveUsername()))
 	a.eng.Queue.Resume()
 	a.eng.BroadcastStatus()
 	return a.eng.Cfg.Get()
